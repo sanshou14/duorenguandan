@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>GoGoGo出发喽 · 登录</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(60,110,60,0.55) 0%, transparent 65%),
+        linear-gradient(180deg, #0f1f0f 0%, #162416 50%, #0d1a0d 100%);
+      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 背景装饰 */
+    body::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(45,122,58,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Logo区域 ── */
+    .logo-area {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      font-size: 52px;
+      line-height: 1;
+      filter: drop-shadow(0 0 16px rgba(241,196,15,0.6));
+      margin-bottom: 10px;
+    }
+
+    .logo-title {
+      font-size: 26px;
+      font-weight: bold;
+      color: #fff;
+      letter-spacing: 4px;
+      text-shadow: 0 0 20px rgba(241,196,15,0.4), 0 2px 8px rgba(0,0,0,0.6);
+    }
+
+    .logo-subtitle {
+      margin-top: 6px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 2px;
+    }
+
+    /* ── 卡片 ── */
+    .card {
+      width: 100%;
+      max-width: 380px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%),
+        linear-gradient(180deg, rgba(20,40,20,0.95) 0%, rgba(12,26,12,0.98) 100%);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 28px 24px 32px;
+      box-shadow:
+        0 20px 60px rgba(0,0,0,0.6),
+        0 4px 16px rgba(0,0,0,0.4),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    /* ── 顶部标签页 ── */
+    .tab-bar {
+      display: flex;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.3);
+      padding: 3px;
+      margin-bottom: 28px;
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.45);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      user-select: none;
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, #3d8c50 0%, #2d6e3c 100%);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(45,110,60,0.5), inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+
+    /* ── 表单面板 ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── 表单元素 ── */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 7px;
+      letter-spacing: 0.5px;
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-prefix {
+      position: absolute;
+      left: 14px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.5);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    input[type="text"],
+    input[type="tel"],
+    input[type="password"],
+    input[type="number"] {
+      width: 100%;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 15px;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+    }
+
+    input.has-prefix {
+      padding-left: 46px;
+    }
+
+    input:focus {
+      border-color: rgba(61,140,80,0.7);
+      box-shadow: 0 0 0 3px rgba(61,140,80,0.15);
+    }
+
+    input::placeholder {
+      color: rgba(255,255,255,0.22);
+      font-size: 14px;
+    }
+
+    /* ── 验证码行 ── */
+    .code-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .code-row input {
+      flex: 1;
+    }
+
+    .btn-send-code {
+      flex-shrink: 0;
+      width: 108px;
+      background: linear-gradient(135deg, rgba(61,140,80,0.85) 0%, rgba(45,110,60,0.85) 100%);
+      border: 1px solid rgba(61,140,80,0.5);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-send-code:hover {
+      background: linear-gradient(135deg, #3d8c50 0%, #2d6e3c 100%);
+      box-shadow: 0 2px 8px rgba(45,110,60,0.4);
+    }
+
+    .btn-send-code:disabled {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.3);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* ── 登录方式切换（密码/验证码） ── */
+    .login-mode-bar {
+      display: flex;
+      gap: 0;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .mode-btn {
+      flex: 1;
+      text-align: center;
+      padding: 6px 0 10px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s;
+      user-select: none;
+    }
+
+    .mode-btn::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 20%;
+      width: 60%;
+      height: 2px;
+      border-radius: 1px;
+      background: #3d8c50;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .mode-btn.active {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .mode-btn.active::after {
+      opacity: 1;
+    }
+
+    .login-sub-panel { display: none; }
+    .login-sub-panel.active { display: block; }
+
+    /* ── 主按钮 ── */
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      margin-top: 8px;
+      background: linear-gradient(135deg, #4a9e60 0%, #2d7a3a 50%, #235e2c 100%);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      cursor: pointer;
+      box-shadow:
+        0 4px 16px rgba(45,122,58,0.45),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow:
+        0 6px 20px rgba(45,122,58,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+      box-shadow:
+        0 2px 8px rgba(45,122,58,0.4),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+
+    /* ── 协议文字 ── */
+    .agreement {
+      margin-top: 18px;
+      text-align: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.3);
+      line-height: 1.6;
+    }
+
+    .agreement a {
+      color: rgba(61,180,90,0.8);
+      text-decoration: none;
+    }
+
+    /* ── 表单校验提示 ── */
+    .field-err {
+      font-size: 11px;
+      color: #e74c3c;
+      margin-top: 5px;
+      display: none;
+    }
+
+    .field-err.show { display: block; }
+
+    /* ── 倒计时 ── */
+    @keyframes countdown-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .counting { animation: countdown-pulse 1s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+
+  <!-- Logo -->
+  <div class="logo-area">
+    <div class="logo-title">GoGoGo出发喽</div>
+    <div class="logo-subtitle">GUANDAN · CARD GAME</div>
+  </div>
+
+  <!-- 卡片 -->
+  <div class="card">
+
+    <!-- 顶部：登录 / 注册 -->
+    <div class="tab-bar">
+      <div class="tab active" id="tab-login" onclick="switchTab('login')">登录</div>
+      <div class="tab" id="tab-register" onclick="switchTab('register')">注册</div>
+    </div>
+
+    <!-- ══ 登录面板 ══ -->
+    <div class="panel active" id="panel-login">
+
+      <!-- 登录方式：密码 / 验证码 -->
+      <div class="login-mode-bar">
+        <div class="mode-btn active" id="mode-pwd" onclick="switchLoginMode('pwd')">密码登录</div>
+        <div class="mode-btn" id="mode-sms" onclick="switchLoginMode('sms')">验证码登录</div>
+      </div>
+
+      <!-- 密码登录 -->
+      <div class="login-sub-panel active" id="sub-pwd">
+        <div class="form-group">
+          <label class="form-label">手机号</label>
+          <div class="input-wrap">
+            <span class="input-prefix">+86</span>
+            <input id="pwd-phone" type="tel" class="has-prefix" placeholder="请输入手机号" maxlength="11" inputmode="numeric">
+          </div>
+          <div class="field-err" id="err-pwd-phone">请输入正确的11位手机号</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">密码</label>
+          <div class="input-wrap">
+            <input id="pwd-password" type="password" placeholder="请输入密码">
+          </div>
+          <div class="field-err" id="err-pwd-password">密码不能为空</div>
+        </div>
+        <button class="btn-primary" onclick="handleLogin('pwd')">登　录</button>
+      </div>
+
+      <!-- 验证码登录 -->
+      <div class="login-sub-panel" id="sub-sms">
+        <div class="form-group">
+          <label class="form-label">手机号</label>
+          <div class="input-wrap">
+            <span class="input-prefix">+86</span>
+            <input id="sms-phone" type="tel" class="has-prefix" placeholder="请输入手机号" maxlength="11" inputmode="numeric">
+          </div>
+          <div class="field-err" id="err-sms-phone">请输入正确的11位手机号</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">验证码</label>
+          <div class="code-row">
+            <input id="sms-code" type="number" placeholder="请输入6位验证码" maxlength="6" inputmode="numeric">
+            <button class="btn-send-code" id="btn-send-sms" onclick="sendCode('sms-phone', 'btn-send-sms')">获取验证码</button>
+          </div>
+          <div class="field-err" id="err-sms-code">请输入验证码</div>
+        </div>
+        <button class="btn-primary" onclick="handleLogin('sms')">登　录</button>
+      </div>
+
+    </div>
+
+    <!-- ══ 注册面板 ══ -->
+    <div class="panel" id="panel-register">
+      <div class="form-group">
+        <label class="form-label">手机号</label>
+        <div class="input-wrap">
+          <span class="input-prefix">+86</span>
+          <input id="reg-phone" type="tel" class="has-prefix" placeholder="请输入手机号" maxlength="11" inputmode="numeric">
+        </div>
+        <div class="field-err" id="err-reg-phone">请输入正确的11位手机号</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">验证码</label>
+        <div class="code-row">
+          <input id="reg-code" type="number" placeholder="请输入6位验证码" maxlength="6" inputmode="numeric">
+          <button class="btn-send-code" id="btn-send-reg" onclick="sendCode('reg-phone', 'btn-send-reg')">获取验证码</button>
+        </div>
+        <div class="field-err" id="err-reg-code">请输入验证码</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">昵称</label>
+        <div class="input-wrap">
+          <input id="reg-username" type="text" placeholder="2–12个字符，用于游戏中展示" maxlength="12">
+        </div>
+        <div class="field-err" id="err-reg-username">昵称需2位以上</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">设置密码</label>
+        <div class="input-wrap">
+          <input id="reg-password" type="password" placeholder="6–20位字符，字母+数字">
+        </div>
+        <div class="field-err" id="err-reg-password">密码需6位以上</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">确认密码</label>
+        <div class="input-wrap">
+          <input id="reg-password2" type="password" placeholder="再次输入密码">
+        </div>
+        <div class="field-err" id="err-reg-password2">两次密码输入不一致</div>
+      </div>
+      <button class="btn-primary" onclick="handleRegister()">注　册</button>
+    </div>
+
+    <!-- 协议 -->
+    <div class="agreement">
+      继续即代表同意 <a href="#">《用户协议》</a> 和 <a href="#">《隐私政策》</a>
+    </div>
+
+  </div>
+
+  <script src="js/api-client.js"></script>
+  <script>
+    // ── 若已登录则直接跳转大厅 ──
+    (async () => {
+      const user = await getCurrentUser();
+      if (user) window.location.href = 'lobby.html';
+    })();
+
+    // ── 标签切换 ──
+    function switchTab(tab) {
+      ['login', 'register'].forEach(t => {
+        document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+        document.getElementById('panel-' + t).classList.toggle('active', t === tab);
+      });
+    }
+
+    // ── 登录方式切换 ──
+    function switchLoginMode(mode) {
+      ['pwd', 'sms'].forEach(m => {
+        document.getElementById('mode-' + m).classList.toggle('active', m === mode);
+        document.getElementById('sub-' + m).classList.toggle('active', m === mode);
+      });
+    }
+
+    // ── 手机号校验 ──
+    function validatePhone(id) {
+      return /^1[3-9]\d{9}$/.test(document.getElementById(id).value.trim());
+    }
+
+    // ── 显示/隐藏错误 ──
+    function showErr(id, show) {
+      document.getElementById(id).classList.toggle('show', show);
+    }
+
+    // ── 按钮 loading 状态 ──
+    function setLoading(btn, loading) {
+      btn.disabled = loading;
+      btn._origText = btn._origText || btn.textContent;
+      btn.textContent = loading ? '请稍候...' : btn._origText;
+    }
+
+    // ── 发送验证码 ──
+    async function sendCode(phoneInputId, btnId) {
+      if (!validatePhone(phoneInputId)) {
+        const errMap = {
+          'sms-phone': 'err-sms-phone',
+          'reg-phone':  'err-reg-phone'
+        };
+        showErr(errMap[phoneInputId] || 'err-sms-phone', true);
+        return;
+      }
+
+      const phone = document.getElementById(phoneInputId).value.trim();
+      const btn   = document.getElementById(btnId);
+
+      try {
+        btn.disabled = true;
+        await sendSmsCode(phone);   // 写入 sms_codes 表
+
+        let seconds = 60;
+        btn.classList.add('counting');
+        btn.textContent = seconds + 's 后重发';
+        const timer = setInterval(() => {
+          seconds--;
+          if (seconds <= 0) {
+            clearInterval(timer);
+            btn.disabled = false;
+            btn.classList.remove('counting');
+            btn.textContent = '重新获取';
+          } else {
+            btn.textContent = seconds + 's 后重发';
+          }
+        }, 1000);
+
+        showToast('验证码已发送（固定：123456）', 'success');
+      } catch (e) {
+        btn.disabled = false;
+        showToast('发送失败：' + e.message);
+      }
+    }
+
+    // ── 密码登录 ──
+    async function handleLogin(mode) {
+      let valid = true;
+      let phone, password, code;
+
+      if (mode === 'pwd') {
+        const phoneOk = validatePhone('pwd-phone');
+        showErr('err-pwd-phone', !phoneOk);
+        const pwdOk = document.getElementById('pwd-password').value.length > 0;
+        showErr('err-pwd-password', !pwdOk);
+        valid = phoneOk && pwdOk;
+        phone    = document.getElementById('pwd-phone').value.trim();
+        password = document.getElementById('pwd-password').value;
+      } else {
+        const phoneOk = validatePhone('sms-phone');
+        showErr('err-sms-phone', !phoneOk);
+        const codeOk = document.getElementById('sms-code').value.trim().length === 6;
+        showErr('err-sms-code', !codeOk);
+        valid = phoneOk && codeOk;
+        phone = document.getElementById('sms-phone').value.trim();
+        code  = document.getElementById('sms-code').value.trim();
+      }
+
+      if (!valid) return;
+
+      const btn = document.querySelector('#sub-' + mode + ' .btn-primary');
+      setLoading(btn, true);
+
+      try {
+        if (mode === 'pwd') {
+          await loginWithPassword(phone, password);
+        } else {
+          const result = await verifySmsCode(phone, code);
+          if (!result.valid) throw new Error(result.error || '验证码错误');
+          if (result.is_new_user) throw new Error('手机号未注册，请先注册');
+          setAuthToken(result.token);
+        }
+
+        window.location.href = 'lobby.html';
+      } catch (e) {
+        showToast(e.message);
+        setLoading(btn, false);
+      }
+    }
+
+    // ── 注册 ──
+    async function handleRegister() {
+      const phoneOk = validatePhone('reg-phone');
+      showErr('err-reg-phone', !phoneOk);
+
+      const codeOk = document.getElementById('reg-code').value.trim().length === 6;
+      showErr('err-reg-code', !codeOk);
+
+      const username  = document.getElementById('reg-username').value.trim();
+      const usernameOk = username.length >= 2;
+      showErr('err-reg-username', !usernameOk);
+
+      const pwd  = document.getElementById('reg-password').value;
+      const pwdOk = pwd.length >= 6;
+      showErr('err-reg-password', !pwdOk);
+
+      const pwd2  = document.getElementById('reg-password2').value;
+      const pwd2Ok = pwd === pwd2 && pwd.length > 0;
+      showErr('err-reg-password2', !pwd2Ok);
+
+      if (!phoneOk || !codeOk || !usernameOk || !pwdOk || !pwd2Ok) return;
+
+      const phone = document.getElementById('reg-phone').value.trim();
+      const code  = document.getElementById('reg-code').value.trim();
+
+      const btn = document.querySelector('#panel-register .btn-primary');
+      setLoading(btn, true);
+
+      try {
+        // 1. 验证短信验证码（Mock：固定 123456）
+        if (String(code) !== '123456') throw new Error('验证码错误');
+
+        // 2. 注册（自动设置 JWT token）
+        await registerUser(phone, username, pwd);
+
+        showToast('注册成功！', 'success');
+        setTimeout(() => { window.location.href = 'lobby.html'; }, 800);
+      } catch (e) {
+        showToast(e.message || '注册失败');
+        setLoading(btn, false);
+      }
+    }
+
+    // 清除错误提示（input focus时）
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('input').forEach(inp => {
+        inp.addEventListener('focus', () => {
+          const wrap = inp.closest('.form-group');
+          if (wrap) wrap.querySelectorAll('.field-err').forEach(e => e.classList.remove('show'));
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(open /Users/a16102/cc_test/ui_prototype/auth.html)",
+      "Bash(open /Users/a16102/cc_test/ui_prototype/lobby.html)",
+      "Bash(open /Users/a16102/cc_test/ui_prototype/result.html)",
+      "Bash(open /Users/a16102/cc_test/ui_prototype/8player.html)",
+      "Bash(vercel --prod)",
+      "Bash(supabase functions:*)",
+      "Bash(supabase --version)",
+      "Read(//Users/a16102/.claude/plans/**)",
+      "Bash(ls /Users/a16102/.claude/projects/-Users-a16102-cc-test-ui-prototype/*.jsonl)",
+      "Bash(ls -lt /Users/a16102/.claude/projects/-Users-a16102-cc-test-ui-prototype/*.jsonl)",
+      "Bash(ping -c 3 njijvwuuhrjpwyxviimt.supabase.co)",
+      "Bash(nslookup njijvwuuhrjpwyxviimt.supabase.co)",
+      "Bash(ls /Users/a16102/cc_test/ui_prototype/*.html)",
+      "Bash(wc -l /Users/a16102/cc_test/ui_prototype/*.html)",
+      "Bash(ls -la /Users/a16102/cc_test/ui_prototype/*.html)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

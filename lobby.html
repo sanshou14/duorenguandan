@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>GoGoGo出发喽 · 大厅</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(60,110,60,0.55) 0%, transparent 65%),
+        linear-gradient(180deg, #0f1f0f 0%, #162416 50%, #0d1a0d 100%);
+      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(45,122,58,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Logo ── */
+    .logo-area {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .logo-title {
+      font-size: 30px;
+      font-weight: bold;
+      color: #fff;
+      letter-spacing: 3px;
+      text-shadow: 0 0 20px rgba(241,196,15,0.4), 0 2px 8px rgba(0,0,0,0.6);
+    }
+
+    .logo-subtitle {
+      margin-top: 8px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 2px;
+    }
+
+    /* ── 主按钮区 ── */
+    .action-area {
+      width: 100%;
+      max-width: 340px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .main-btn {
+      width: 100%;
+      padding: 0;
+      border: none;
+      border-radius: 18px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.18s, box-shadow 0.18s;
+    }
+
+    .main-btn:active {
+      transform: scale(0.97);
+    }
+
+    .main-btn-inner {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 22px 28px;
+      border-radius: 18px;
+    }
+
+    /* 创建游戏 - 金绿渐变 */
+    .btn-create .main-btn-inner {
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%),
+        linear-gradient(135deg, #3a7a48 0%, #245c30 60%, #1a4522 100%);
+      box-shadow:
+        0 8px 28px rgba(36,92,48,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.15),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+      border: 1px solid rgba(80,160,90,0.3);
+    }
+
+    .btn-create:hover .main-btn-inner {
+      box-shadow:
+        0 12px 36px rgba(36,92,48,0.7),
+        inset 0 1px 0 rgba(255,255,255,0.18),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+    }
+
+    /* 加入游戏 - 深蓝绿渐变 */
+    .btn-join .main-btn-inner {
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%),
+        linear-gradient(135deg, #1e5068 0%, #163c52 60%, #0f2c3e 100%);
+      box-shadow:
+        0 8px 28px rgba(22,60,82,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+      border: 1px solid rgba(50,120,160,0.3);
+    }
+
+    .btn-join:hover .main-btn-inner {
+      box-shadow:
+        0 12px 36px rgba(22,60,82,0.7),
+        inset 0 1px 0 rgba(255,255,255,0.15),
+        inset 0 -1px 0 rgba(0,0,0,0.2);
+    }
+
+    .btn-icon {
+      font-size: 36px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .btn-text {
+      text-align: left;
+    }
+
+    .btn-text-main {
+      font-size: 20px;
+      font-weight: bold;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+
+    .btn-text-sub {
+      margin-top: 4px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.5px;
+    }
+
+    .btn-arrow {
+      margin-left: auto;
+      font-size: 20px;
+      color: rgba(255,255,255,0.3);
+    }
+
+    /* ── 弹窗遮罩 ── */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .overlay.show {
+      display: flex;
+      animation: fade-in 0.2s ease;
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    /* ── 底部弹窗 ── */
+    .sheet {
+      width: 100%;
+      max-width: 480px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 50%),
+        linear-gradient(180deg, #1a3020 0%, #111e14 100%);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-bottom: none;
+      border-radius: 24px 24px 0 0;
+      padding: 24px 24px 40px;
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.6);
+      animation: slide-up 0.28s cubic-bezier(0.22,0.61,0.36,1);
+    }
+
+    @keyframes slide-up {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.15);
+      margin: 0 auto 20px;
+    }
+
+    .sheet-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 24px;
+      letter-spacing: 1px;
+    }
+
+    /* ── 人数选择 ── */
+    .player-options {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .player-opt {
+      flex: 1;
+      border-radius: 14px;
+      padding: 20px 12px;
+      text-align: center;
+      cursor: pointer;
+      border: 2px solid rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.25);
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .player-opt:hover {
+      border-color: rgba(61,140,80,0.5);
+      background: rgba(61,140,80,0.08);
+    }
+
+    .player-opt.selected {
+      border-color: #3d8c50;
+      background: rgba(61,140,80,0.15);
+      box-shadow: 0 0 0 3px rgba(61,140,80,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+
+    .player-opt-num {
+      font-size: 36px;
+      font-weight: bold;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .player-opt.selected .player-opt-num {
+      color: #5dc878;
+      text-shadow: 0 0 12px rgba(93,200,120,0.5);
+    }
+
+    .player-opt-label {
+      margin-top: 8px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.45);
+    }
+
+    .player-opt.selected .player-opt-label {
+      color: rgba(93,200,120,0.8);
+    }
+
+    .player-opt-tag {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.35);
+    }
+
+    .player-opt.selected .player-opt-tag {
+      background: rgba(93,200,120,0.15);
+      color: rgba(93,200,120,0.7);
+    }
+
+    /* ── 房间号输入 ── */
+    .room-input-wrap {
+      margin-bottom: 28px;
+    }
+
+    .room-label {
+      font-size: 13px;
+      color: rgba(255,255,255,0.45);
+      margin-bottom: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .room-input {
+      width: 100%;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #fff;
+      letter-spacing: 6px;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+    }
+
+    .room-input:focus {
+      border-color: rgba(50,120,160,0.7);
+      box-shadow: 0 0 0 3px rgba(50,120,160,0.15);
+    }
+
+    .room-input::placeholder {
+      color: rgba(255,255,255,0.2);
+      font-size: 15px;
+      letter-spacing: 1px;
+      font-weight: normal;
+    }
+
+    .field-err {
+      font-size: 12px;
+      color: #e74c3c;
+      margin-top: 7px;
+      display: none;
+      text-align: center;
+    }
+
+    .field-err.show { display: block; }
+
+    /* ── 确认按钮 ── */
+    .btn-confirm {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 14px;
+      font-size: 17px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-confirm-green {
+      background: linear-gradient(135deg, #4a9e60 0%, #2d7a3a 50%, #235e2c 100%);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(45,122,58,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+
+    .btn-confirm-green:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(45,122,58,0.55), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+
+    .btn-confirm-blue {
+      background: linear-gradient(135deg, #2a7090 0%, #1a506a 50%, #103d52 100%);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(26,80,106,0.5), inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+
+    .btn-confirm-blue:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(26,80,106,0.65), inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+
+    .btn-confirm:active { transform: scale(0.98); }
+
+    /* ── 用户信息栏（右上角） ── */
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, transparent 100%);
+      z-index: 10;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3d8c50, #245c30);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      border: 1.5px solid rgba(255,255,255,0.15);
+    }
+
+    .username {
+      font-size: 14px;
+      color: rgba(255,255,255,0.8);
+      font-weight: 500;
+    }
+
+    .top-right {
+      font-size: 12px;
+      color: rgba(255,255,255,0.35);
+    }
+
+    .btn-logout {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      color: rgba(255,255,255,0.4);
+      font-size: 12px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-logout:hover { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.3); }
+
+    /* ── 用户信息可点击 ── */
+    .user-info {
+      cursor: pointer;
+      padding: 4px 8px 4px 4px;
+      border-radius: 20px;
+      transition: background 0.2s;
+    }
+    .user-info:hover { background: rgba(255,255,255,0.08); }
+
+    /* ── 个人资料弹窗 ── */
+    #overlay-profile {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    #overlay-profile.show { display: flex; animation: fade-in 0.2s ease; }
+
+    .profile-sheet {
+      width: 320px;
+      background: linear-gradient(160deg, #1e3525 0%, #111e14 100%);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 28px 24px 24px;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.7);
+      animation: pop-in 0.22s cubic-bezier(0.22,0.61,0.36,1);
+    }
+    @keyframes pop-in {
+      from { transform: scale(0.92); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+
+    .profile-title {
+      font-size: 17px;
+      font-weight: bold;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    /* 头像上传区 */
+    .avatar-upload-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .avatar-preview {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3d8c50, #245c30);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      border: 2px solid rgba(255,255,255,0.15);
+      overflow: hidden;
+      position: relative;
+    }
+    .avatar-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+    .btn-upload-avatar {
+      font-size: 12px;
+      color: rgba(93,200,120,0.9);
+      background: rgba(93,200,120,0.1);
+      border: 1px solid rgba(93,200,120,0.3);
+      border-radius: 8px;
+      padding: 5px 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-upload-avatar:hover { background: rgba(93,200,120,0.18); }
+
+    /* 游戏ID输入 */
+    .profile-field { margin-bottom: 20px; }
+    .profile-label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+    .profile-input {
+      width: 100%;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 15px;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+    .profile-input:focus { border-color: rgba(93,200,120,0.5); }
+
+    .profile-btns {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-profile-cancel {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      background: none;
+      color: rgba(255,255,255,0.5);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-profile-cancel:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7); }
+    .btn-profile-save {
+      flex: 2;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #4a9e60, #2d7a3a);
+      color: #fff;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-profile-save:hover { box-shadow: 0 4px 14px rgba(45,122,58,0.5); }
+    .btn-profile-save:disabled { opacity: 0.5; cursor: default; }
+
+    /* ── Loading overlay ── */
+    #loading-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: #0d1a0d;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+      transition: opacity 0.35s ease;
+    }
+    #loading-overlay .ld-spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(241,196,15,0.2);
+      border-top-color: #f1c40f;
+      border-radius: 50%;
+      animation: ld-spin 0.8s linear infinite;
+    }
+    #loading-overlay .ld-logo {
+      font-size: 18px; font-weight: bold;
+      color: rgba(255,255,255,0.75); letter-spacing: 3px;
+    }
+    @keyframes ld-spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div id="loading-overlay">
+    <div class="ld-spinner"></div>
+    <div class="ld-logo">GoGoGo 出发喽</div>
+  </div>
+
+  <!-- 顶部用户信息 -->
+  <div class="top-bar">
+    <div class="user-info" onclick="openProfileModal()">
+      <div class="avatar" id="top-avatar">?</div>
+      <span class="username" id="top-username">加载中...</span>
+    </div>
+    <button class="btn-logout" onclick="signOut()">退出登录</button>
+  </div>
+
+  <!-- ══ 个人资料弹窗 ══ -->
+  <div id="overlay-profile" onclick="handleProfileOverlayClick(event)">
+    <div class="profile-sheet" id="sheet-profile">
+      <div class="profile-title">编辑资料</div>
+
+      <div class="avatar-upload-area">
+        <div class="avatar-preview" id="profile-avatar-preview">
+          <span id="profile-avatar-char">?</span>
+        </div>
+        <label class="btn-upload-avatar">
+          更换头像
+          <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="onAvatarFileChange(event)">
+        </label>
+      </div>
+
+      <div class="profile-field">
+        <div class="profile-label">游戏 ID</div>
+        <input class="profile-input" id="profile-username-input" type="text" placeholder="请输入游戏ID" maxlength="12">
+      </div>
+
+      <div class="profile-btns">
+        <button class="btn-profile-cancel" onclick="closeProfileModal()">取消</button>
+        <button class="btn-profile-save" id="btn-profile-save" onclick="saveProfile()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logo -->
+  <div class="logo-area">
+    <div class="logo-title">GoGoGo出发喽</div>
+    <div class="logo-subtitle">GUANDAN · CARD GAME</div>
+  </div>
+
+  <!-- 主操作区 -->
+  <div class="action-area">
+    <button class="main-btn btn-create" onclick="openSheet('create')">
+      <div class="main-btn-inner">
+        <div class="btn-icon">🎮</div>
+        <div class="btn-text">
+          <div class="btn-text-main">创建游戏</div>
+          <div class="btn-text-sub">选择人数，生成专属房间</div>
+        </div>
+        <div class="btn-arrow">›</div>
+      </div>
+    </button>
+
+    <button class="main-btn btn-join" onclick="openSheet('join')">
+      <div class="main-btn-inner">
+        <div class="btn-icon">🚪</div>
+        <div class="btn-text">
+          <div class="btn-text-main">加入游戏</div>
+          <div class="btn-text-sub">输入房间号，立即加入</div>
+        </div>
+        <div class="btn-arrow">›</div>
+      </div>
+    </button>
+  </div>
+
+  <!-- ══ 创建游戏 弹窗 ══ -->
+  <div class="overlay" id="overlay-create" onclick="handleOverlayClick(event, 'create')">
+    <div class="sheet" id="sheet-create">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">选择游戏人数</div>
+
+      <div class="player-options">
+        <div class="player-opt selected" id="opt-6" onclick="selectPlayers(6)">
+          <div class="player-opt-num">6</div>
+          <div class="player-opt-label">人</div>
+          <div class="player-opt-tag">2队 × 3人</div>
+        </div>
+        <div class="player-opt" id="opt-8" onclick="selectPlayers(8)">
+          <div class="player-opt-num">8</div>
+          <div class="player-opt-label">人</div>
+          <div class="player-opt-tag">2队 × 4人</div>
+        </div>
+      </div>
+
+      <button class="btn-confirm btn-confirm-green" onclick="createGame()">创建游戏</button>
+    </div>
+  </div>
+
+  <!-- ══ 加入游戏 弹窗 ══ -->
+  <div class="overlay" id="overlay-join" onclick="handleOverlayClick(event, 'join')">
+    <div class="sheet" id="sheet-join">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">加入游戏</div>
+
+      <div class="room-input-wrap">
+        <div class="room-label">请输入房间号</div>
+        <input
+          class="room-input"
+          id="room-code"
+          type="number"
+          inputmode="numeric"
+          placeholder="输入6位房间号"
+          maxlength="6"
+          oninput="onRoomInput()"
+        >
+        <div class="field-err" id="err-room">请输入正确的6位房间号</div>
+      </div>
+
+      <button class="btn-confirm btn-confirm-blue" onclick="joinGame()">进入游戏</button>
+    </div>
+  </div>
+
+  <script src="js/api-client.js"></script>
+  <script>
+    let selectedPlayers = 6;
+    let _pendingAvatarBlob = null; // 待上传的头像文件
+
+    function hideLoading() {
+      const el = document.getElementById('loading-overlay');
+      if (!el) return;
+      el.style.opacity = '0';
+      setTimeout(() => el.remove(), 350);
+    }
+
+    // ── 页面初始化 ──
+    (async () => {
+      const user = await requireAuth();
+      if (!user) { hideLoading(); return; }
+
+      try {
+        const profile = await getMyProfile();
+        renderTopBar(profile);
+      } catch (e) {
+        console.warn('无法加载用户资料', e);
+      } finally {
+        hideLoading();
+      }
+    })();
+
+    function renderTopBar(profile) {
+      const avatarEl = document.getElementById('top-avatar');
+      if (profile.avatar_url) {
+        avatarEl.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+      } else {
+        avatarEl.textContent = profile.avatar_char || '?';
+      }
+      document.getElementById('top-username').textContent = profile.username;
+    }
+
+    // ── 个人资料弹窗 ──
+    async function openProfileModal() {
+      const profile = await getMyProfile();
+      // 填充当前头像
+      const previewEl = document.getElementById('profile-avatar-preview');
+      const charEl    = document.getElementById('profile-avatar-char');
+      if (profile.avatar_url) {
+        charEl.style.display = 'none';
+        const img = document.createElement('img');
+        img.src = profile.avatar_url;
+        previewEl.appendChild(img);
+      } else {
+        charEl.textContent = profile.avatar_char || '?';
+      }
+      // 填充游戏ID
+      document.getElementById('profile-username-input').value = profile.username || '';
+      _pendingAvatarBlob = null;
+      document.getElementById('overlay-profile').classList.add('show');
+    }
+
+    function closeProfileModal() {
+      document.getElementById('overlay-profile').classList.remove('show');
+      // 清理预览中可能添加的 img
+      const previewEl = document.getElementById('profile-avatar-preview');
+      const img = previewEl.querySelector('img');
+      if (img) img.remove();
+      document.getElementById('profile-avatar-char').style.display = '';
+    }
+
+    function handleProfileOverlayClick(e) {
+      if (!document.getElementById('sheet-profile').contains(e.target)) {
+        closeProfileModal();
+      }
+    }
+
+    // 选择本地图片后压缩预览
+    function onAvatarFileChange(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const img = new Image();
+        img.onload = () => {
+          // Canvas 压缩到 200×200
+          const canvas = document.createElement('canvas');
+          canvas.width = 200; canvas.height = 200;
+          const ctx = canvas.getContext('2d');
+          // 居中裁剪
+          const size = Math.min(img.width, img.height);
+          const sx = (img.width  - size) / 2;
+          const sy = (img.height - size) / 2;
+          ctx.drawImage(img, sx, sy, size, size, 0, 0, 200, 200);
+          canvas.toBlob(blob => {
+            _pendingAvatarBlob = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+            // 更新预览
+            const previewEl = document.getElementById('profile-avatar-preview');
+            let previewImg = previewEl.querySelector('img');
+            if (!previewImg) {
+              previewImg = document.createElement('img');
+              previewEl.appendChild(previewImg);
+              document.getElementById('profile-avatar-char').style.display = 'none';
+            }
+            previewImg.src = canvas.toDataURL('image/jpeg', 0.85);
+          }, 'image/jpeg', 0.85);
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+      e.target.value = ''; // 允许重复选同一文件
+    }
+
+    // 保存资料
+    async function saveProfile() {
+      const saveBtn = document.getElementById('btn-profile-save');
+      const username = document.getElementById('profile-username-input').value.trim();
+      if (!username) { showToast('游戏ID不能为空'); return; }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = '保存中...';
+      try {
+        const updates = { username };
+
+        if (_pendingAvatarBlob) {
+          const url = await uploadAvatar(_pendingAvatarBlob);
+          updates.avatar_url = url;
+          // 同时更新 avatar_char 为首字
+          updates.avatar_char = username.charAt(0);
+        } else {
+          updates.avatar_char = username.charAt(0);
+        }
+
+        await updateMyProfile(updates);
+        const profile = await getMyProfile();
+        renderTopBar(profile);
+        closeProfileModal();
+        showToast('资料已更新');
+      } catch (e) {
+        showToast('保存失败：' + e.message);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '保存';
+      }
+    }
+
+    function openSheet(type) {
+      document.getElementById('overlay-' + type).classList.add('show');
+      if (type === 'join') {
+        setTimeout(() => document.getElementById('room-code').focus(), 300);
+      }
+    }
+
+    function closeSheet(type) {
+      document.getElementById('overlay-' + type).classList.remove('show');
+    }
+
+    function handleOverlayClick(e, type) {
+      if (!document.getElementById('sheet-' + type).contains(e.target)) {
+        closeSheet(type);
+      }
+    }
+
+    function selectPlayers(n) {
+      selectedPlayers = n;
+      document.getElementById('opt-6').classList.toggle('selected', n === 6);
+      document.getElementById('opt-8').classList.toggle('selected', n === 8);
+    }
+
+    async function createGame() {
+      const btn = document.querySelector('#sheet-create .btn-confirm');
+      btn.disabled = true;
+      btn.textContent = '创建中...';
+
+      try {
+        const room = await createRoom(selectedPlayers);
+        closeSheet('create');
+        const page = selectedPlayers === 6 ? '6player.html' : '8player.html';
+        window.location.href = `${page}?room_id=${room.id}`;
+      } catch (e) {
+        showToast(e.message || '创建失败');
+        btn.disabled = false;
+        btn.textContent = '创建游戏';
+      }
+    }
+
+    function onRoomInput() {
+      document.getElementById('err-room').classList.remove('show');
+      const inp = document.getElementById('room-code');
+      if (inp.value.length > 6) inp.value = inp.value.slice(0, 6);
+    }
+
+    async function joinGame() {
+      const val = document.getElementById('room-code').value.trim();
+      if (!/^\d{6}$/.test(val)) {
+        document.getElementById('err-room').classList.add('show');
+        return;
+      }
+
+      const btn = document.querySelector('#sheet-join .btn-confirm');
+      btn.disabled = true;
+      btn.textContent = '进入中...';
+
+      try {
+        const { room } = await joinRoomByCode(val);
+        closeSheet('join');
+        const page = room.player_count === 6 ? '6player.html' : '8player.html';
+        window.location.href = `${page}?room_id=${room.id}`;
+      } catch (e) {
+        showToast(e.message || '加入失败');
+        btn.disabled = false;
+        btn.textContent = '进入游戏';
+      }
+    }
+  </script>
+</body>
+</html>

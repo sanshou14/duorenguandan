@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>GoGoGo出发喽 · 结算</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(60,110,60,0.55) 0%, transparent 65%),
+        linear-gradient(180deg, #0f1f0f 0%, #162416 50%, #0d1a0d 100%);
+      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 16px 40px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── 顶部胜利横幅 ── */
+    .victory-banner {
+      width: 100%;
+      max-width: 480px;
+      text-align: center;
+      padding: 40px 0 28px;
+      position: relative;
+    }
+
+    .victory-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 20px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+    }
+
+    .victory-tag.red {
+      background: rgba(192,57,43,0.25);
+      border: 1px solid rgba(231,76,60,0.4);
+      color: #e74c3c;
+    }
+
+    .victory-tag.blue {
+      background: rgba(36,113,163,0.25);
+      border: 1px solid rgba(52,152,219,0.4);
+      color: #3498db;
+    }
+
+    .victory-title {
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .victory-title.red {
+      color: #fff;
+      text-shadow: 0 0 30px rgba(231,76,60,0.6), 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .victory-title.blue {
+      color: #fff;
+      text-shadow: 0 0 30px rgba(52,152,219,0.6), 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .victory-sub {
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    /* ── 贡献值说明 ── */
+    .rule-strip {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      padding: 0 4px;
+    }
+
+    .rule-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.07);
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
+      white-space: nowrap;
+    }
+
+    .rule-item .rule-rank { color: rgba(255,255,255,0.6); font-weight: 600; }
+    .rule-item .rule-pts { color: #f1c40f; font-weight: bold; }
+
+    /* ── 排行卡片 ── */
+    .rank-list {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .rank-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      border-radius: 16px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 50%),
+        rgba(12, 28, 14, 0.85);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s;
+      animation: card-in 0.4s ease both;
+    }
+
+    .rank-card:nth-child(1) { animation-delay: 0.05s; }
+    .rank-card:nth-child(2) { animation-delay: 0.12s; }
+    .rank-card:nth-child(3) { animation-delay: 0.19s; }
+    .rank-card:nth-child(4) { animation-delay: 0.26s; }
+    .rank-card:nth-child(5) { animation-delay: 0.33s; }
+    .rank-card:nth-child(6) { animation-delay: 0.40s; }
+
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 第1名特殊高亮 */
+    .rank-card.rank-1 {
+      background:
+        linear-gradient(135deg, rgba(241,196,15,0.12) 0%, transparent 55%),
+        rgba(12, 28, 14, 0.9);
+      border-color: rgba(241,196,15,0.3);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(241,196,15,0.08);
+    }
+
+    /* 左侧光条（按队伍颜色） */
+    .rank-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      border-radius: 16px 0 0 16px;
+    }
+
+    .rank-card.team-red::before  { background: linear-gradient(180deg, #e74c3c, #c0392b); }
+    .rank-card.team-blue::before { background: linear-gradient(180deg, #3498db, #2471a3); }
+
+    /* 名次徽章 */
+    .rank-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .rank-badge.r1 { background: linear-gradient(135deg, #f1c40f, #d4a017); color: #1a1a00; font-size: 16px; box-shadow: 0 2px 8px rgba(241,196,15,0.4); }
+    .rank-badge.r2 { background: linear-gradient(135deg, #bdc3c7, #95a5a6); color: #1a1a1a; }
+    .rank-badge.r3 { background: linear-gradient(135deg, #cd853f, #a0522d); color: #fff; }
+    .rank-badge.r4, .rank-badge.r5, .rank-badge.r6 {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.4);
+      border: 1px solid rgba(255,255,255,0.1);
+      font-size: 13px;
+    }
+
+    /* 头像 */
+    .player-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+      flex-shrink: 0;
+      border: 2px solid rgba(255,255,255,0.12);
+    }
+
+    .avatar-red  { background: linear-gradient(135deg, #e74c3c, #922b21); }
+    .avatar-blue { background: linear-gradient(135deg, #3498db, #1a5276); }
+
+    /* 玩家信息 */
+    .player-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .player-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .player-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 3px;
+    }
+
+    .team-label {
+      font-size: 11px;
+      padding: 1px 7px;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    .team-label.red  { background: rgba(231,76,60,0.2);  color: #e74c3c; }
+    .team-label.blue { background: rgba(52,152,219,0.2); color: #3498db; }
+
+    .round-detail {
+      font-size: 11px;
+      color: rgba(255,255,255,0.3);
+    }
+
+    /* 贡献值 */
+    .pts-area {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .pts-value {
+      font-size: 26px;
+      font-weight: 900;
+      color: #f1c40f;
+      line-height: 1;
+      text-shadow: 0 0 10px rgba(241,196,15,0.4);
+    }
+
+    .rank-card.rank-1 .pts-value {
+      font-size: 30px;
+    }
+
+    .pts-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.3);
+      margin-top: 2px;
+    }
+
+    /* ── 分组小计 ── */
+    .team-summary {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .team-sum-card {
+      flex: 1;
+      padding: 14px 16px;
+      border-radius: 14px;
+      text-align: center;
+    }
+
+    .team-sum-card.red {
+      background: rgba(192,57,43,0.15);
+      border: 1px solid rgba(231,76,60,0.25);
+    }
+
+    .team-sum-card.blue {
+      background: rgba(36,113,163,0.15);
+      border: 1px solid rgba(52,152,219,0.25);
+    }
+
+    .team-sum-name {
+      font-size: 12px;
+      color: rgba(255,255,255,0.45);
+      margin-bottom: 4px;
+    }
+
+    .team-sum-pts {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .team-sum-card.red  .team-sum-pts { color: #e74c3c; }
+    .team-sum-card.blue .team-sum-pts { color: #3498db; }
+
+    .team-sum-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,0.25);
+      margin-top: 2px;
+    }
+
+    /* ── 退出按钮 ── */
+    .btn-exit {
+      width: 100%;
+      max-width: 480px;
+      padding: 15px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #4a9e60 0%, #2d7a3a 50%, #235e2c 100%);
+      color: #fff;
+      font-size: 17px;
+      font-weight: bold;
+      letter-spacing: 3px;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(45,122,58,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
+      transition: all 0.2s;
+    }
+
+    .btn-exit:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(45,122,58,0.55), inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+
+    .btn-exit:active { transform: scale(0.98); }
+
+    /* ── 烟花粒子 ── */
+    .confetti {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: visible;
+    }
+
+    .spark {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 1px;
+      animation: fall linear forwards;
+      top: -10px;
+    }
+
+    @keyframes fall {
+      0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+      80%  { opacity: 0.6; }
+      100% { transform: translateY(90vh) rotate(720deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 烟花效果 -->
+  <div class="confetti" id="confetti"></div>
+
+  <!-- 胜利横幅 -->
+  <div class="victory-banner">
+    <div class="victory-tag red" id="victory-tag">🏆 胜利队伍</div>
+    <div class="victory-title red" id="victory-title">红队获胜！</div>
+    <div class="victory-sub" id="victory-sub">加载中...</div>
+  </div>
+
+  <!-- 队伍积分规则说明 -->
+  <div class="rule-strip">
+    <div class="rule-item"><span class="rule-rank">1+2同队</span><span class="rule-pts">+3</span></div>
+    <div class="rule-item"><span class="rule-rank">1+3同队</span><span class="rule-pts">+2</span></div>
+    <div class="rule-item"><span class="rule-rank">1+4~末同队</span><span class="rule-pts">+1</span></div>
+  </div>
+
+  <!-- 排行榜 -->
+  <div class="rank-list" id="rank-list"></div>
+
+  <!-- 队伍合计 -->
+  <div class="team-summary" id="team-summary"></div>
+
+  <!-- 退出游戏 -->
+  <button class="btn-exit" onclick="exitGame()">退出游戏</button>
+
+  <script src="js/api-client.js"></script>
+  <script>
+    const RANK_PTS  = { 1:6, 2:5, 3:4, 4:3, 5:1, 6:1, 7:1, 8:1 }; // 个人表现分（仅用于显示）
+    const BADGE_CLS  = ['','r1','r2','r3','r4','r5','r6','r6','r6'];
+    const BADGE_EMOJI = ['','🥇','🥈','🥉','4','5','6','7','8'];
+
+    // 按名次加分规则计算每局队伍积分
+    function calcRoundTeamBonus(rankings, playerMap) {
+      const sorted = [...rankings].sort((a, b) => a.rank - b.rank);
+      if (!sorted.length) return { red: 0, blue: 0 };
+      const first = sorted[0];
+      const firstTeam = playerMap[first.user_id]?.team;
+      if (!firstTeam) return { red: 0, blue: 0 };
+      let bestTeammateRank = null;
+      for (const r of sorted.slice(1)) {
+        if (playerMap[r.user_id]?.team === firstTeam) { bestTeammateRank = r.rank; break; }
+      }
+      if (bestTeammateRank === null) return { red: 0, blue: 0 };
+      const bonus = bestTeammateRank === 2 ? 3 : bestTeammateRank === 3 ? 2 : 1;
+      return { red: firstTeam === 'red' ? bonus : 0, blue: firstTeam === 'blue' ? bonus : 0 };
+    }
+
+    // ── 退出 ──
+    function exitGame() { window.location.href = 'lobby.html'; }
+
+    // ── 烟花 ──
+    const COLORS = ['#f1c40f','#e74c3c','#3498db','#2ecc71','#e67e22','#fff'];
+    function burst() {
+      const container = document.getElementById('confetti');
+      for (let i = 0; i < 22; i++) {
+        const el = document.createElement('div');
+        el.className = 'spark';
+        el.style.cssText = `
+          left:${Math.random()*100}%;
+          background:${COLORS[Math.floor(Math.random()*COLORS.length)]};
+          width:${4+Math.random()*5}px; height:${4+Math.random()*5}px;
+          animation-duration:${2+Math.random()*2}s;
+          animation-delay:${Math.random()*1.5}s;
+          border-radius:${Math.random()>0.5?'50%':'1px'};
+        `;
+        container.appendChild(el);
+        el.addEventListener('animationend', () => el.remove());
+      }
+    }
+
+    // ── 加载真实数据 ──
+    (async () => {
+      // 若未登录则跳转
+      const user = await getCurrentUser();
+      if (!user) { window.location.href = 'auth.html'; return; }
+
+      const roomId = getUrlParam('room_id');
+      if (!roomId) { window.location.href = 'lobby.html'; return; }
+
+      try {
+        // 1. 获取房间信息
+        const room = await getRoomById(roomId);
+
+        // 2. 获取所有玩家（含 profiles）
+        const roomPlayers = await getRoomPlayers(roomId);
+        const profileIds  = roomPlayers.map(p => p.user_id);
+        const profileList = await getProfiles(profileIds);
+        const profileMap  = {};
+        profileList.forEach(p => { profileMap[p.id] = p; });
+        // 用于 calcRoundTeamBonus 的队伍映射（user_id → {team}）
+        const teamMap = {};
+        roomPlayers.forEach(rp => { teamMap[rp.user_id] = { team: rp.team }; });
+
+        // 3. 获取所有局次排名
+        const allRounds = await getAllRounds(roomId);
+
+        // 4. 为每个玩家计算贡献值
+        // rankings: [{user_id, seat, rank}] per round
+        const playerStats = {};
+        roomPlayers.forEach(rp => {
+          const profile = profileMap[rp.user_id] || {};
+          playerStats[rp.user_id] = {
+            userId: rp.user_id,
+            name:   profile.username || '玩家',
+            avatar: profile.avatar_char || (profile.username?.charAt(0)) || '?',
+            team:   rp.team,
+            rounds: [],  // [rank per round]
+            total:  0
+          };
+        });
+
+        allRounds.forEach(round => {
+          (round.rankings || []).forEach(r => {
+            if (playerStats[r.user_id]) {
+              playerStats[r.user_id].rounds.push(r.rank);
+              playerStats[r.user_id].total += RANK_PTS[r.rank] || 0;
+            }
+          });
+        });
+
+        const players = Object.values(playerStats).sort((a, b) => b.total - a.total);
+
+        // 5. 渲染胜利横幅
+        const winTeam = room.winner_team || 'red';
+        const winLabel = winTeam === 'red' ? '红队' : '蓝队';
+        document.getElementById('victory-tag').className   = `victory-tag ${winTeam}`;
+        document.getElementById('victory-title').className = `victory-title ${winTeam}`;
+        document.getElementById('victory-title').textContent = `${winLabel}获胜！`;
+        document.getElementById('victory-sub').textContent =
+          `共进行 ${room.total_rounds} 局 · 房间号 ${room.room_code}`;
+
+        // 6. 渲染排行榜
+        const list = document.getElementById('rank-list');
+        list.innerHTML = '';
+        players.forEach((p, i) => {
+          const rank = i + 1;
+          const roundDetail = p.rounds.map(r => RANK_PTS[r] || 0).join('+');
+          const cardClass = `rank-card team-${p.team}${rank === 1 ? ' rank-1' : ''}`;
+          list.innerHTML += `
+            <div class="${cardClass}">
+              <div class="rank-badge ${BADGE_CLS[rank] || 'r6'}">${BADGE_EMOJI[rank] || rank}</div>
+              <div class="player-avatar avatar-${p.team}">${p.avatar}</div>
+              <div class="player-info">
+                <div class="player-name">${p.name}${p.userId === user.id ? '（我）' : ''}</div>
+                <div class="player-meta">
+                  <span class="team-label ${p.team}">${p.team === 'red' ? '红队' : '蓝队'}</span>
+                  <span class="round-detail">${roundDetail || '--'} = ${p.total}</span>
+                </div>
+              </div>
+              <div class="pts-area">
+                <div class="pts-value">${p.total}</div>
+                <div class="pts-label">贡献值</div>
+              </div>
+            </div>`;
+        });
+
+        // 7. 渲染队伍合计（使用队伍积分规则：+3/+2/+1）
+        let redBonus = 0, blueBonus = 0;
+        allRounds.forEach(round => {
+          const bonus = calcRoundTeamBonus(round.rankings || [], teamMap);
+          redBonus  += bonus.red;
+          blueBonus += bonus.blue;
+        });
+
+        document.getElementById('team-summary').innerHTML = `
+          <div class="team-sum-card red">
+            <div class="team-sum-name">红队积分</div>
+            <div class="team-sum-pts">${redBonus}</div>
+            <div class="team-sum-sub">共 ${allRounds.length} 局</div>
+          </div>
+          <div class="team-sum-card blue">
+            <div class="team-sum-name">蓝队积分</div>
+            <div class="team-sum-pts">${blueBonus}</div>
+            <div class="team-sum-sub">共 ${allRounds.length} 局</div>
+          </div>`;
+
+        // 8. 烟花
+        burst(); setTimeout(burst, 800); setTimeout(burst, 1600);
+
+      } catch(e) {
+        console.error('加载结算数据失败', e);
+        showToast('加载数据失败：' + e.message);
+      }
+    })();
+  </script>
+</body>
+</html>
