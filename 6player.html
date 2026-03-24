@@ -3,17 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>掼蛋 · 6人桌</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ── 强制横屏 ── */
+    @media screen and (orientation: portrait) {
+      html {
+        transform: rotate(90deg);
+        transform-origin: top left;
+        width: 100dvh;
+        height: 100dvw;
+        position: absolute;
+        top: 0;
+        left: 100%;
+        overflow: hidden;
+      }
+    }
 
     body {
       background:
         radial-gradient(ellipse at 50% 0%, rgba(40,100,95,0.55) 0%, transparent 65%),
         linear-gradient(180deg, #0f1a1a 0%, #122020 50%, #0d1616 100%);
       font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
-      height: 100vh;
-      width: 100vw;
+      height: 100dvh;
+      width: 100dvw;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -850,6 +867,11 @@
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="js/api-client.js"></script>
 <script>
+  // ── 自动隐藏 Safari 地址栏 ──
+  window.addEventListener('load', () => {
+    setTimeout(() => window.scrollTo(0, 1), 100);
+  });
+
   // ── Game Log System ──
   const gameLogs = [];
   const MAX_LOGS = 200;
