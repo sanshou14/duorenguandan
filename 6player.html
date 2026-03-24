@@ -391,6 +391,26 @@
       gap: 10px;
     }
 
+    /* ── Play area avatar ── */
+    .play-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #5a8fd4, #3a6fa8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      color: #fff;
+      border: 2px solid rgba(255,255,255,0.3);
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .play-avatar.team-r { background: linear-gradient(145deg, #d94f3a, #a8301f); }
+    .play-avatar.team-b { background: linear-gradient(145deg, #3a88c8, #1e5f96); }
+    .play-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
     .play-type-label {
       font-size: 11px;
       font-weight: bold;
@@ -791,6 +811,7 @@
       <!-- Play zone -->
       <div class="play-zone">
         <div class="play-center">
+          <div class="play-avatar" id="playAvatar" style="display:none"></div>
           <div class="played-cards" id="playArea">
             <div class="play-hint">等待出牌</div>
           </div>
@@ -1724,10 +1745,25 @@
 
   // ── Table cards display ──
   function updateTableCards(cards, fromSeat) {
+    const avatarEl = document.getElementById('playAvatar');
     if (!cards || cards.length === 0) {
       playArea.innerHTML = '<div class="play-hint">等待出牌</div>';
       playTypeEl.style.display = 'none';
+      if (avatarEl) avatarEl.style.display = 'none';
       return;
+    }
+    // 显示出牌玩家头像
+    if (avatarEl && fromSeat !== undefined && fromSeat !== null) {
+      const player = players.find(p => p.seat === fromSeat);
+      const profile = player ? profiles[player.user_id] : null;
+      const teamClass = RED_SLOTS.includes(fromSeat) ? 'team-r' : 'team-b';
+      avatarEl.className = `play-avatar ${teamClass}`;
+      if (profile?.avatar_url) {
+        avatarEl.innerHTML = `<img src="${profile.avatar_url}">`;
+      } else {
+        avatarEl.textContent = profile?.avatar_char || profile?.username?.charAt(0) || '?';
+      }
+      avatarEl.style.display = 'flex';
     }
     playArea.innerHTML = '';
     cards.forEach(card => {
