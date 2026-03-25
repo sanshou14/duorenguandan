@@ -32,8 +32,8 @@
 
     body {
       background:
-        radial-gradient(ellipse at 50% 0%, rgba(40,100,95,0.55) 0%, transparent 65%),
-        linear-gradient(180deg, #0f1a1a 0%, #122020 50%, #0d1616 100%);
+        radial-gradient(ellipse at 50% 0%, rgba(40,150,130,0.65) 0%, transparent 60%),
+        linear-gradient(180deg, #0d3530 0%, #0f3c36 50%, #0b2e28 100%);
       font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
       height: 100dvh;
       width: 100dvw;
@@ -45,7 +45,7 @@
 
     /* ── Header ── */
     .header {
-      background: linear-gradient(180deg, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.48) 100%);
+      background: linear-gradient(180deg, rgba(8,35,32,0.88) 0%, rgba(12,48,43,0.70) 100%);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       border-bottom: 1px solid rgba(255,255,255,0.07);
@@ -526,14 +526,14 @@
     }
 
     .hand-card {
-      width: 38px;
-      height: 54px;
+      width: 46px;
+      height: 65px;
       background: linear-gradient(165deg, #ffffff 0%, #f2f2f2 100%);
-      border-radius: 5px;
+      border-radius: 6px;
       display: flex;
       flex-direction: row;
       align-items: flex-start;
-      padding: 3px 4px;
+      padding: 3px 5px;
       box-shadow: 0 3px 7px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.8);
       border: 1px solid rgba(0,0,0,0.1);
       flex-shrink: 0;
@@ -544,7 +544,7 @@
     }
 
     .hand-card:not(:first-child) {
-      margin-top: -34px;
+      margin-top: -42px;
     }
 
     .hand-card.selected {
@@ -558,8 +558,8 @@
       border-color: rgba(0,0,0,0.15);
     }
 
-    .hand-card .h-rank { font-size: 14px; font-weight: bold; line-height: 1.1; }
-    .hand-card .h-suit { font-size: 12px; line-height: 1; }
+    .hand-card .h-rank { font-size: 17px; font-weight: bold; line-height: 1.1; }
+    .hand-card .h-suit { font-size: 14px; line-height: 1; }
     .hand-card.red   { color: #d63031; }
     .hand-card.black { color: #1a1a2e; }
 
@@ -582,7 +582,7 @@
       gap: 0;
     }
     .h-j-char {
-      font-size: 9px;
+      font-size: 11px;
       font-weight: 900;
       line-height: 1.1;
       display: block;
