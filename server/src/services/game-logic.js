@@ -64,16 +64,36 @@ function removeCards(hand, played) {
 function calcTributes(rankings, players, playerCount) {
   const n = rankings.length;
   const bottomCount = playerCount === 8 ? 4 : 3;
-  const bottomRankings = rankings.slice(n - bottomCount);
-  const bottomTeams = bottomRankings.map(r => players.find(p => p.seat === r.seat)?.team);
-  const allSameTeam = bottomTeams.length > 0 && bottomTeams.every(t => t === bottomTeams[0]);
+  // 用 Number() 统一类型，避免 JSON 取出字符串 seat 与 DB 整数 seat 严格比较失败
+  const bottomSeats = new Set(rankings.slice(n - bottomCount).map(r => Number(r.seat)));
 
-  if (allSameTeam) {
-    return Array.from({ length: bottomCount }, (_, i) => ({
-      from_seat: rankings[n - 1 - i].seat,
-      to_seat: rankings[i].seat,
+  // 按队伍分组（显式逐队检查，语义更清晰）
+  const teamSeats = {};
+  for (const p of players) {
+    if (!p.team) continue;
+    if (!teamSeats[p.team]) teamSeats[p.team] = [];
+    teamSeats[p.team].push(Number(p.seat));
+  }
+
+  // 找出某队伍所有人都在末尾 bottomCount 名内（全末游）
+  const sweepTeam = Object.keys(teamSeats).find(
+    t => teamSeats[t].length > 0 && teamSeats[t].every(s => bottomSeats.has(s))
+  );
+
+  if (sweepTeam) {
+    const loserSeats = teamSeats[sweepTeam];
+    const losers = rankings
+      .filter(r => loserSeats.includes(Number(r.seat)))
+      .sort((a, b) => b.rank - a.rank);   // 末名在前
+    const winners = rankings
+      .filter(r => !loserSeats.includes(Number(r.seat)))
+      .sort((a, b) => a.rank - b.rank);   // 头名在前
+    return losers.map((loser, i) => ({
+      from_seat: loser.seat,
+      to_seat: winners[i].seat,
     }));
   }
+
   return [
     { from_seat: rankings[n - 1].seat, to_seat: rankings[0].seat },
     { from_seat: rankings[n - 2].seat, to_seat: rankings[1].seat },
