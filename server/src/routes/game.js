@@ -632,6 +632,11 @@ async function handleFinished(req, roomId, seat, gs, players) {
   const finishOrder = result?.finish_order || [];
   const roundEnded = result?.round_ended;
 
+  const io = req.app.get('io');
+
+  // 立刻广播更新后的 round_finish_order，客户端才能显示头游/二游等标签
+  broadcastToRoom(io, roomId, 'game_state_changed', { round_finish_order: finishOrder });
+
   if (!roundEnded) return;
 
   const gamePlayers = players.filter(p => p.seat < 100);
@@ -651,7 +656,6 @@ async function handleFinished(req, roomId, seat, gs, players) {
     [roomId, req.user.id, seat, room.current_round]
   );
 
-  const io = req.app.get('io');
   broadcastToRoom(io, roomId, 'game_action', {
     action_type: 'round_end', seat, round_number: room.current_round, rankings
   });
@@ -663,6 +667,9 @@ async function handleFinishedServer(io, roomId, seat, gs, players, room) {
   const result = await appendFinishOrder(roomId, seat);
   const finishOrder = result?.finish_order || [];
   const roundEnded = result?.round_ended;
+
+  // 立刻广播更新后的 round_finish_order，客户端才能显示头游/二游等标签
+  broadcastToRoom(io, roomId, 'game_state_changed', { round_finish_order: finishOrder });
 
   if (!roundEnded) return;
 

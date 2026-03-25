@@ -984,6 +984,9 @@
     if (room.current_level) currentLevel = String(room.current_level);
     document.getElementById('room-num-display').textContent = room.room_code;
     document.getElementById('lcode').textContent = room.room_code;
+    // 从 room 初始化级别徽章
+    if (room.team_a_level) document.getElementById('red-level').textContent = room.team_a_level;
+    if (room.team_b_level) document.getElementById('blue-level').textContent = room.team_b_level;
 
     const rawPlayers = await getRoomPlayers(roomId);
     players = rawPlayers;
@@ -1451,6 +1454,9 @@
         lastActionBySeat.clear();
         const dealRoom = await getRoomById(roomId);
         if (dealRoom?.current_level) currentLevel = String(dealRoom.current_level);
+        // 同步级别徽章
+        if (dealRoom?.team_a_level) document.getElementById('red-level').textContent = dealRoom.team_a_level;
+        if (dealRoom?.team_b_level) document.getElementById('blue-level').textContent = dealRoom.team_b_level;
         const handData = await getMyHand(roomId);
         myHand = handData?.cards || [];
         renderHand(myHand);
@@ -1500,6 +1506,12 @@
           try {
             const endResult = await api('/api/game/end-round', { method: 'POST', body: { room_id: parseInt(roomId), round_number: action.round_number } });
             gameLog('等级', `胜方:${endResult.winner_team||'无'} 红:→${endResult.new_red_level} 蓝:→${endResult.new_blue_level}`);
+            // 直接更新级别徽章和下局级牌
+            if (endResult.new_red_level) document.getElementById('red-level').textContent = endResult.new_red_level;
+            if (endResult.new_blue_level) document.getElementById('blue-level').textContent = endResult.new_blue_level;
+            if (endResult.winner_team) {
+              currentLevel = endResult.winner_team === 'red' ? endResult.new_red_level : endResult.new_blue_level;
+            }
             if (!endResult.game_over) {
               gameLog('系统', '3秒后发下一局牌...');
               setTimeout(async () => {
