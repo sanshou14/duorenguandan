@@ -1372,6 +1372,10 @@
       myHand = data.cards || [];
       renderHand(myHand);
     });
+    s.on('player_cards_changed', (data) => {
+      const p = players.find(pl => pl.user_id === data.user_id);
+      if (p) { p.card_count = data.card_count; renderAllSeats(); }
+    });
 
     // 所有游戏座位默认视为在线
     players.filter(p => p.seat < 100).forEach(p => onlineSeats.add(p.seat));
@@ -1450,6 +1454,9 @@
         const handData = await getMyHand(roomId);
         myHand = handData?.cards || [];
         renderHand(myHand);
+        // 刷新 players 以获取最新 card_count（避免显示"完"）
+        players = await getRoomPlayers(roomId);
+        renderAllSeats();
         // 确保 gameState 已更新后再判断按钮（防止与 handleGameStateChange 竞态）
         if (!gameState || gameState.phase !== 'playing') {
           gameState = await getGameState(roomId);
@@ -1568,7 +1575,10 @@
       : avatarChar;
     const displayName = profile?.username || '玩家';
     const cnt = player.card_count || 0;
-    const cntText = cnt >= 8 ? '不够报' : (cnt > 0 ? `${cnt}张` : '完');
+    const isReallyDone = (gameState?.round_finish_order || []).includes(player.seat);
+    const cntText = cnt >= 8 ? '不够报'
+      : (cnt > 0 ? `${cnt}张`
+      : (gameState?.phase === 'playing' && !isReallyDone ? '不够报' : '完'));
     const opacity = isFinished ? 'opacity:0.5;' : '';
     const isOffline = onlineSeats.size > 0 && gameState?.phase === 'playing' && !onlineSeats.has(player.seat);
     const finishOrder = gameState?.round_finish_order || [];
@@ -1604,8 +1614,11 @@
       ? `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
       : avatarChar;
     const displayName = isMe ? '我' : (profile?.username || '玩家');
-    const cnt     = isMe ? myHand.length : (player.card_count || 0);
-    const cntText = cnt >= 8 ? '不够报' : (cnt > 0 ? `剩 ${cnt}张` : '已出完');
+    const cnt = isMe ? myHand.length : (player.card_count || 0);
+    const isReallyDone2 = !isMe && (gameState?.round_finish_order || []).includes(player.seat);
+    const cntText = cnt >= 8 ? '不够报'
+      : (cnt > 0 ? `剩 ${cnt}张`
+      : (gameState?.phase === 'playing' && !isReallyDone2 ? '不够报' : '已出完'));
     const myCountAttr = isMe ? 'id="myCount"' : '';
     const opacity = isFinished ? 'opacity:0.5;' : '';
     const isOffline = !isMe && onlineSeats.size > 0 && gameState?.phase === 'playing' && !onlineSeats.has(player.seat);
@@ -2011,7 +2024,8 @@
 
     const nonWilds = cards.filter((_, i) => !wildIndices.includes(i));
     const wildCount = wildIndices.length;
-    const RANKS = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
+    const baseRanks = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
+    const RANKS = [currentLevel, ...baseRanks.filter(r => r !== currentLevel)];
     const SUITS = ['♠','♦','♣','♥'];
 
     function makeSub(rank, suit) {
@@ -2037,7 +2051,7 @@
 
     function tryRankCombo(depth, rankAcc) {
       if (depth === wildCount) {
-        const subs = rankAcc.map(r => makeSub(r, r === currentLevel ? '♠' : '♠'));
+        const subs = rankAcc.map(r => makeSub(r, '♠'));
         const testHand = [...nonWilds, ...subs];
         let type = getPlayType(testHand);
         if (type !== '未知牌型') return { type, resolvedCards: [...testHand] };

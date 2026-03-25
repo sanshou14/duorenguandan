@@ -3,6 +3,15 @@
 const RANK_ORDER = ['2','3','4','5','6','7','8','9','10','J','Q','K','A','小','大'];
 const rankIdx = (r) => RANK_ORDER.indexOf(r);
 
+// 级牌生效后的牌力顺序（级牌移至 A 之后）
+function getEffRankOrder(currentLevel) {
+  const base = ['2','3','4','5','6','7','8','9','10','J','Q','K','A','小','大'];
+  if (!currentLevel || currentLevel === '小' || currentLevel === '大') return base;
+  const filtered = base.filter(r => r !== currentLevel);
+  filtered.splice(filtered.indexOf('A') + 1, 0, currentLevel);
+  return filtered;
+}
+
 // ── 牌组生成 ──
 function generateDecks(deckCount) {
   const ranks = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
@@ -128,7 +137,8 @@ function getAIPlayType(cards) {
   return '未知牌型';
 }
 
-function getComboMaxRank(cards, type) {
+function getComboMaxRank(cards, type, currentLevel) {
+  // 顺子类型用原始顺序（级牌在顺子中不提升）
   if (type === '连对') {
     const ranks = [...new Set(cards.map(c => c.rank))];
     return Math.max(...ranks.map(r => RANK_ORDER.indexOf(r)));
@@ -140,7 +150,12 @@ function getComboMaxRank(cards, type) {
   if ((type === '顺子' || type === '同花顺') && cards.map(c=>c.rank).includes('A') && cards.map(c=>c.rank).includes('2')) {
     return RANK_ORDER.indexOf('5');
   }
-  return Math.max(...cards.map(c => RANK_ORDER.indexOf(c.rank)));
+  if (type === '顺子' || type === '同花顺') {
+    return Math.max(...cards.map(c => RANK_ORDER.indexOf(c.rank)));
+  }
+  // 单张/对子/三条/炸弹：级牌高于 A，用级牌生效顺序
+  const cmpOrder = currentLevel ? getEffRankOrder(currentLevel) : RANK_ORDER;
+  return Math.max(...cards.map(c => cmpOrder.indexOf(c.rank)));
 }
 
 function getBombLevel(type) {
@@ -244,19 +259,23 @@ function findConsecutiveTriples(hand) {
   return results.sort((a,b) => getComboMaxRank(a,'飞机') - getComboMaxRank(b,'飞机'));
 }
 
-function findSameTypeBeating(hand, type, tableMaxRank, tableLen) {
+function findSameTypeBeating(hand, type, tableMaxRank, tableLen, currentLevel) {
+  const SEQ_TYPES = ['顺子', '同花顺', '连对', '飞机'];
+  const effOrder = (currentLevel && !SEQ_TYPES.includes(type)) ? getEffRankOrder(currentLevel) : RANK_ORDER;
+  const effIdx = (r) => effOrder.indexOf(r);
+
   if (type === '单张') {
-    const c = [...hand].sort((a,b)=>rankIdx(a.rank)-rankIdx(b.rank)).find(c=>rankIdx(c.rank)>tableMaxRank);
+    const c = [...hand].sort((a,b)=>effIdx(a.rank)-effIdx(b.rank)).find(c=>effIdx(c.rank)>tableMaxRank);
     return c ? [c] : null;
   }
   if (type === '对子') {
-    return findGroups(hand, 2).filter(g=>rankIdx(g[0].rank)>tableMaxRank).sort((a,b)=>rankIdx(a[0].rank)-rankIdx(b[0].rank))[0] || null;
+    return findGroups(hand, 2).filter(g=>effIdx(g[0].rank)>tableMaxRank).sort((a,b)=>effIdx(a[0].rank)-effIdx(b[0].rank))[0] || null;
   }
   if (type === '三条') {
-    return findGroups(hand, 3).filter(g=>rankIdx(g[0].rank)>tableMaxRank).sort((a,b)=>rankIdx(a[0].rank)-rankIdx(b[0].rank))[0] || null;
+    return findGroups(hand, 3).filter(g=>effIdx(g[0].rank)>tableMaxRank).sort((a,b)=>effIdx(a[0].rank)-effIdx(b[0].rank))[0] || null;
   }
   if (type.includes('炸弹')) {
-    return findGroups(hand, tableLen).filter(g=>rankIdx(g[0].rank)>tableMaxRank).sort((a,b)=>rankIdx(a[0].rank)-rankIdx(b[0].rank))[0] || null;
+    return findGroups(hand, tableLen).filter(g=>effIdx(g[0].rank)>tableMaxRank).sort((a,b)=>effIdx(a[0].rank)-effIdx(b[0].rank))[0] || null;
   }
   if (type === '顺子') {
     return findStraights(hand).filter(s=>getComboMaxRank(s,'顺子')>tableMaxRank).sort((a,b)=>getComboMaxRank(a,'顺子')-getComboMaxRank(b,'顺子'))[0] || null;
@@ -301,7 +320,7 @@ function findSmallestBomb(hand, minBombLevel) {
   return null;
 }
 
-function chooseCards(hand, lastPlayed, lastPlayedBySeat, mySeat) {
+function chooseCards(hand, lastPlayed, lastPlayedBySeat, mySeat, currentLevel) {
   const tableEmpty = !lastPlayed || lastPlayed.length === 0 || lastPlayedBySeat === mySeat;
   if (tableEmpty) {
     const straight = findStraights(hand)[0];
@@ -314,8 +333,8 @@ function chooseCards(hand, lastPlayed, lastPlayedBySeat, mySeat) {
     return sorted.length > 0 ? [sorted[0]] : null;
   }
   const tableType = getAIPlayType(lastPlayed);
-  const tableMaxRank = getComboMaxRank(lastPlayed, tableType);
-  const sameTypePlay = findSameTypeBeating(hand, tableType, tableMaxRank, lastPlayed.length);
+  const tableMaxRank = getComboMaxRank(lastPlayed, tableType, currentLevel);
+  const sameTypePlay = findSameTypeBeating(hand, tableType, tableMaxRank, lastPlayed.length, currentLevel);
   if (sameTypePlay) return sameTypePlay;
   const tableBombLevel = getBombLevel(tableType);
   if (tableBombLevel < 5) {
@@ -326,7 +345,7 @@ function chooseCards(hand, lastPlayed, lastPlayedBySeat, mySeat) {
 }
 
 module.exports = {
-  RANK_ORDER, rankIdx, generateDecks, shuffle, getNextSeat, removeCards,
+  RANK_ORDER, rankIdx, getEffRankOrder, generateDecks, shuffle, getNextSeat, removeCards,
   calcTributes, buildRankings, chooseCards, getAIPlayType, getComboMaxRank,
   getBombLevel, findGroups, findStraights, findFlushStraights,
   findConsecutivePairs, findConsecutiveTriples,

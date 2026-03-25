@@ -388,7 +388,7 @@ router.post('/ai-move', async (req, res) => {
     if (!room) return res.status(400).json({ error: '房间不存在' });
 
     const finishOrder = gs.round_finish_order || [];
-    const cardsToPlay = chooseCards(hand, gs.last_played_cards, gs.last_played_by_seat, seat);
+    const cardsToPlay = chooseCards(hand, gs.last_played_cards, gs.last_played_by_seat, seat, String(room.current_level || '2'));
 
     const io = req.app.get('io');
 
