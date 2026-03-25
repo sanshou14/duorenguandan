@@ -177,6 +177,13 @@
     /* ── Player seat ── */
     .seat {
       display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 3px;
+    }
+
+    .seat-body {
+      display: flex;
       flex-direction: row;
       align-items: center;
       gap: 6px;
@@ -311,6 +318,20 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      gap: 2px;
+    }
+
+    .seat-compact-body {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .compact-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
       gap: 2px;
     }
 
@@ -566,27 +587,33 @@
     /* ── Joker cards ── */
     .hand-card.joker-s {
       background: linear-gradient(165deg, #f0f0f0, #dcdcdc);
-      color: #222;
     }
     .hand-card.joker-b {
       background: linear-gradient(165deg, #fff9e6, #fff0c0);
-      color: #c0392b;
     }
-    .h-joker {
+    .h-joker-face {
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
-      justify-content: flex-start;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
       height: 100%;
-      padding: 2px 3px;
-      gap: 0;
+      gap: 1px;
     }
-    .h-j-char {
+    .h-joker-rank {
       font-size: 11px;
       font-weight: 900;
-      line-height: 1.1;
-      display: block;
+      line-height: 1;
+      align-self: flex-start;
     }
+    .h-joker-icon {
+      font-size: 26px;
+      line-height: 1;
+    }
+    .joker-s .h-joker-rank { color: #222; }
+    .joker-s .h-joker-icon { filter: grayscale(1) brightness(0.35); }
+    .joker-b .h-joker-rank { color: #c0392b; }
+
     /* ── Trump heart (红心级牌) ── */
     .hand-card.trump-heart .h-rank,
     .hand-card.trump-heart .h-suit {
@@ -594,12 +621,67 @@
       text-shadow: 0 0 4px rgba(212,160,23,0.5);
     }
 
-    .joker-s .h-j-char { color: #222; }
-    .joker-b .h-j-char {
-      background: linear-gradient(180deg, #e74c3c, #d4a000);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    /* ── Play-area joker ── */
+    .play-card.joker-s,
+    .play-card.joker-b {
+      align-items: center;
+      justify-content: center;
+      padding: 0;
     }
+    .p-joker-face {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      gap: 1px;
+    }
+    .p-joker-rank {
+      font-size: 9px;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .p-joker-icon { font-size: 18px; line-height: 1; }
+    .play-card.joker-s { background: linear-gradient(165deg, #f0f0f0, #dcdcdc); }
+    .play-card.joker-b { background: linear-gradient(165deg, #fff9e6, #fff0c0); }
+    .play-card.joker-s .p-joker-rank { color: #222; }
+    .play-card.joker-b .p-joker-rank { color: #c0392b; }
+    .play-card.joker-s .p-joker-icon { filter: grayscale(1) brightness(0.35); }
+
+    /* ── Return tribute cards ── */
+    .return-card {
+      width: 44px;
+      height: 60px;
+      background: linear-gradient(165deg, #fff 0%, #f5f5f5 100%);
+      border-radius: 6px;
+      border: 2px solid rgba(80,120,200,0.3);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 4px 5px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      transition: border-color 0.12s, box-shadow 0.12s;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    .return-card.rc-red { color: #d63031; }
+    .return-card.rc-black { color: #1a1a2e; }
+    .return-card .rc-rank { font-size: 14px; line-height: 1.1; }
+    .return-card .rc-suit { font-size: 12px; line-height: 1; }
+    .return-card.invalid {
+      opacity: 0.28;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .return-card.selected {
+      border-color: #f1c40f;
+      background: linear-gradient(165deg, #fffef0, #fff8cc);
+      box-shadow: 0 0 0 2px rgba(241,196,15,0.55), 0 2px 8px rgba(241,196,15,0.4);
+    }
+    .return-card.rc-joker-b { background: linear-gradient(165deg, #fff9e6, #fff0c0); }
+    .return-card.rc-joker-s { background: linear-gradient(165deg, #f0f0f0, #dcdcdc); }
 
     /* ── Bottom panel (float over table) ── */
     .bottom-panel {
@@ -1574,7 +1656,7 @@
 
   function renderSeatCompactHTML(player, profile, isActive, isFinished) {
     if (!player) {
-      return `<div class="seat-compact"><div class="avatar-sm" style="opacity:0.3;font-size:9px">空</div><div class="pname-sm" style="opacity:0.3">--</div><div class="card-count-sm">--</div></div>`;
+      return `<div class="seat-compact"><div class="avatar-sm" style="opacity:0.3;font-size:9px">空</div><div class="compact-info"><div class="pname-sm" style="opacity:0.3">--</div><div class="card-count-sm">--</div></div></div>`;
     }
     const teamChar = player.team === 'red' ? 'r' : 'b';
     let cls = `avatar-sm team-${teamChar}`;
@@ -1606,10 +1688,14 @@
       else if (lastAct === 'pass') labelHTML = `<div class="action-tag pass">过牌</div>`;
     }
     return `<div class="seat-compact" ${opacity ? `style="${opacity}"` : ''}>
-      <div class="${cls}" style="position:relative">${avatarInner}<div class="team-dot ${teamChar}"></div></div>
-      <div class="pname-sm">${displayName}${isOffline ? '<span style="color:#e74c3c;font-size:10px">（已离线）</span>' : ''}</div>
-      <div class="card-count-sm">${cntText}</div>
       ${labelHTML}
+      <div class="seat-compact-body">
+        <div class="${cls}" style="position:relative">${avatarInner}<div class="team-dot ${teamChar}"></div></div>
+        <div class="compact-info">
+          <div class="pname-sm">${displayName}${isOffline ? '<span style="color:#e74c3c;font-size:10px">（已离线）</span>' : ''}</div>
+          <div class="card-count-sm">${cntText}</div>
+        </div>
+      </div>
     </div>`;
   }
 
@@ -1647,8 +1733,14 @@
       else if (lastAct2 === 'pass') labelHTML2 = `<div class="action-tag pass" style="font-size:11px">过牌</div>`;
     }
     return `<div class="seat" ${opacity ? `style="${opacity}"` : ''}>
-      <div class="${cls}" style="position:relative">${avatarInner}<div class="team-dot ${teamChar}"></div></div>
-      <div class="seat-info"><div class="pname">${displayName}${isOffline ? '<span style="color:#e74c3c;font-size:11px">（已离线）</span>' : ''}</div><div class="card-count" ${myCountAttr}>${cntText}</div>${labelHTML2}</div>
+      ${labelHTML2}
+      <div class="seat-body">
+        <div class="${cls}" style="position:relative">${avatarInner}<div class="team-dot ${teamChar}"></div></div>
+        <div class="seat-info">
+          <div class="pname">${displayName}${isOffline ? '<span style="color:#e74c3c;font-size:11px">（已离线）</span>' : ''}</div>
+          <div class="card-count" ${myCountAttr}>${cntText}</div>
+        </div>
+      </div>
     </div>`;
   }
 
@@ -1676,7 +1768,7 @@
         el.dataset.rank = card.rank; el.dataset.suit = card.suit; el.dataset.color = card.color;
         if (card.rank === '小' || card.rank === '大') {
           el.classList.add(card.rank === '小' ? 'joker-s' : 'joker-b');
-          el.innerHTML = `<div class="h-joker">${'JOKER'.split('').map(c=>`<span class="h-j-char">${c}</span>`).join('')}</div>`;
+          el.innerHTML = `<div class="h-joker-face"><span class="h-joker-rank">${card.rank}王</span><span class="h-joker-icon">🤡</span></div>`;
         } else {
           el.innerHTML = `<span class="h-rank">${card.rank}</span><span class="h-suit">${card.suit}</span>`;
         }
@@ -1761,8 +1853,8 @@
     cards.forEach(card => {
       const div = document.createElement('div');
       if (card.rank === '小' || card.rank === '大') {
-        div.className = `play-card ${card.rank === '小' ? 'black' : 'red'}`;
-        div.innerHTML = `<span class="r-val" style="font-size:12px;letter-spacing:-0.5px">JOKER</span>`;
+        div.className = `play-card ${card.rank === '小' ? 'joker-s' : 'joker-b'}`;
+        div.innerHTML = `<div class="p-joker-face"><span class="p-joker-rank">${card.rank}王</span><span class="p-joker-icon">🤡</span></div>`;
       } else {
         div.className = `play-card ${card.color}`;
         div.innerHTML = `<span class="r-val">${card.rank}</span><span class="r-suit">${card.suit}</span>`;
@@ -1885,7 +1977,15 @@
       const fromName = players.find(p => p.seat === t.from_seat)?.profiles?.username || `座位${t.from_seat}`;
       const toName   = players.find(p => p.seat === t.to_seat)?.profiles?.username || `座位${t.to_seat}`;
       const card     = t.tribute_card;
-      const cardStr  = card ? `<b style="color:${card.color==='red'?'#e74c3c':'#7eb8ff'}">${card.rank}${card.suit}</b>` : '';
+      let cardStr = '';
+      if (card) {
+        if (card.rank === '大' || card.rank === '小') {
+          const isSmall = card.rank === '小';
+          cardStr = `<b style="color:${isSmall?'#555':'#e74c3c'}">${card.rank}王 <span style="${isSmall?'filter:grayscale(1) brightness(0.35)':''}">🤡</span></b>`;
+        } else {
+          cardStr = `<b style="color:${card.color==='red'?'#e74c3c':'#7eb8ff'}">${card.rank}${card.suit}</b>`;
+        }
+      }
       const done     = t.return_done ? ' <span style="color:#4CAF50">✓已还贡</span>' : '';
       return `<p style="margin:4px 0">${fromName} 进贡 ${cardStr} 给 ${toName}${done}</p>`;
     }).join('');
@@ -1959,21 +2059,33 @@
     btn.disabled = true;
     btn.style.opacity = '0.5';
 
-    const validCards = myHand.filter(c => RETURN_VALID_RANKS.has(c.rank));
-    container.innerHTML = validCards.map((c, i) =>
-      `<div class="return-card" data-idx="${i}" data-rank="${c.rank}" data-suit="${c.suit}" data-color="${c.color}"
-        style="padding:8px 14px; border:2px solid #3a4a6a; border-radius:8px; cursor:pointer;
-        color:${c.color==='red'?'#e74c3c':'#c8d8f0'}; font-size:15px; background:#0f1a2e;">${c.rank}${c.suit}</div>`
-    ).join('');
+    container.innerHTML = myHand.map((c, i) => {
+      const valid = RETURN_VALID_RANKS.has(c.rank);
+      const invalidCls = valid ? '' : ' invalid';
+      if (c.rank === '大' || c.rank === '小') {
+        const jCls = c.rank === '小' ? 'rc-joker-s' : 'rc-joker-b';
+        const iconStyle = c.rank === '小' ? 'filter:grayscale(1) brightness(0.35)' : '';
+        return `<div class="return-card${invalidCls} ${jCls}" data-idx="${i}" data-rank="${c.rank}" data-suit="${c.suit}" data-color="${c.color}">
+          <span style="font-size:9px;font-weight:900;color:${c.rank==='小'?'#222':'#c0392b'}">${c.rank}王</span>
+          <span style="font-size:18px;line-height:1;${iconStyle}">🤡</span>
+        </div>`;
+      }
+      const colorCls = c.color === 'red' ? 'rc-red' : 'rc-black';
+      return `<div class="return-card${invalidCls} ${colorCls}" data-idx="${i}" data-rank="${c.rank}" data-suit="${c.suit}" data-color="${c.color}">
+        <span class="rc-rank">${c.rank}</span><span class="rc-suit">${c.suit}</span>
+      </div>`;
+    }).join('');
 
-    if (validCards.length === 0) {
-      container.innerHTML = '<p style="color:#e74c3c; font-size:13px">手牌中无合法还贡牌，将自动还贡</p>';
+    if (myHand.length === 0) {
+      container.innerHTML = '<p style="color:#e74c3c; font-size:13px">手牌为空，将自动还贡</p>';
+    } else if (!myHand.some(c => RETURN_VALID_RANKS.has(c.rank))) {
+      container.innerHTML += '<p style="color:#e74c3c; font-size:12px; width:100%; margin-top:6px">无合法还贡牌，将自动还贡</p>';
     }
 
-    container.querySelectorAll('.return-card').forEach(el => {
+    container.querySelectorAll('.return-card:not(.invalid)').forEach(el => {
       el.addEventListener('click', () => {
-        container.querySelectorAll('.return-card').forEach(e => e.style.borderColor = '#3a4a6a');
-        el.style.borderColor = '#3a7bd5';
+        container.querySelectorAll('.return-card').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
         selectedReturn = { rank: el.dataset.rank, suit: el.dataset.suit, color: el.dataset.color };
         btn.disabled = false;
         btn.style.opacity = '1';
@@ -2224,8 +2336,8 @@
 <!-- 上贡/还贡 覆盖层 -->
 <div id="tribute-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
   background:rgba(0,0,0,.75); z-index:300; align-items:center; justify-content:center;">
-  <div style="background:#1a2035; border:1px solid #2a3a5a; border-radius:14px; padding:28px 32px;
-    min-width:320px; max-width:480px; color:#e0e8ff; box-shadow:0 8px 32px rgba(0,0,0,.6);">
+  <div style="background:#1a2035; border:1px solid #2a3a5a; border-radius:14px; padding:24px 28px;
+    min-width:320px; max-width:min(90vw,720px); width:90vw; color:#e0e8ff; box-shadow:0 8px 32px rgba(0,0,0,.6);">
     <h3 style="text-align:center; margin:0 0 16px; font-size:18px; color:#7eb8ff;">上贡阶段</h3>
     <div id="tribute-info-list" style="margin-bottom:12px; line-height:1.8; font-size:14px;"></div>
     <div id="tribute-suit-section" style="display:none; border-top:1px solid #2a3a5a; padding-top:14px; margin-top:4px;">
@@ -2237,7 +2349,7 @@
     </div>
     <div id="return-tribute-section" style="display:none; border-top:1px solid #2a3a5a; padding-top:14px; margin-top:4px;">
       <p style="margin:0 0 10px; font-size:14px; color:#a0b8e0;">请选择还贡牌（点数 ≤ 10）：</p>
-      <div id="return-card-options" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;"></div>
+      <div id="return-card-options" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px;"></div>
       <button id="btn-return-tribute" disabled
         style="width:100%; padding:10px; background:#3a7bd5; color:#fff; border:none; border-radius:8px;
         cursor:pointer; font-size:15px; opacity:0.5; transition:opacity .2s;">确认还贡</button>
