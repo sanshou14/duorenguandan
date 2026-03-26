@@ -723,6 +723,9 @@
       const user = await requireAuth();
       if (!user) { hideLoading(); return; }
 
+      // 若有进行中的对局，强制跳回游戏桌
+      if (await checkAndRedirectActiveRoom()) return;
+
       try {
         const profile = await getMyProfile();
         renderTopBar(profile);

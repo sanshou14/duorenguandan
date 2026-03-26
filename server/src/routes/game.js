@@ -789,4 +789,62 @@ router.post('/end-round', async (req, res) => {
   }
 });
 
+// ── 玩家退出游戏（对局中途） ──────────────────────────────────────
+router.post('/exit', async (req, res) => {
+  try {
+    const { room_id } = req.body;
+    if (!room_id) return res.status(400).json({ error: 'room_id required' });
+
+    // 1. 标记该玩家已退出
+    await query('UPDATE room_players SET is_exited = 1 WHERE room_id = ? AND user_id = ?',
+      [room_id, req.user.id]);
+
+    // 2. 广播退出事件给同房间其他人
+    const io = req.app.get('io');
+    broadcastToRoom(io, room_id, 'player_exited', { user_id: req.user.id });
+
+    // 3. 若全员已退出 → 强制结束对局
+    const rows = await query(
+      'SELECT COUNT(*) AS cnt FROM room_players WHERE room_id = ? AND is_exited = 0 AND seat < 100',
+      [room_id]);
+    if (rows[0].cnt === 0) {
+      await Promise.all([
+        query("UPDATE rooms SET status = 'finished' WHERE id = ?", [room_id]),
+        query("UPDATE game_states SET phase = 'game_end' WHERE room_id = ?", [room_id]),
+      ]);
+      broadcastToRoom(io, room_id, 'game_action', { action_type: 'game_end', reason: 'all_exited' });
+      broadcastToRoom(io, room_id, 'room_changed', { status: 'finished' });
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('exit error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── 检查当前玩家是否有进行中的对局（用于重连跳转） ─────────────────
+router.get('/active-room', async (req, res) => {
+  try {
+    const rows = await query(
+      `SELECT r.id AS room_id, r.player_count
+       FROM room_players rp
+       JOIN rooms r ON r.id = rp.room_id
+       WHERE rp.user_id = ? AND r.status = 'playing' AND rp.seat < 100
+       LIMIT 1`,
+      [req.user.id]);
+
+    if (!rows.length) return res.json({ active: false });
+
+    // 重连：重置 is_exited（玩家回来了）
+    await query('UPDATE room_players SET is_exited = 0 WHERE room_id = ? AND user_id = ?',
+      [rows[0].room_id, req.user.id]);
+
+    res.json({ active: true, room_id: rows[0].room_id, player_count: rows[0].player_count });
+  } catch (err) {
+    console.error('active-room error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

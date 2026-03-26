@@ -440,7 +440,9 @@
     // ── 若已登录则直接跳转大厅 ──
     (async () => {
       const user = await getCurrentUser();
-      if (user) window.location.href = 'lobby.html';
+      if (user) {
+        if (!await checkAndRedirectActiveRoom()) window.location.href = 'lobby.html';
+      }
     })();
 
     // ── 标签切换 ──
@@ -554,7 +556,7 @@
           setAuthToken(result.token);
         }
 
-        window.location.href = 'lobby.html';
+        if (!await checkAndRedirectActiveRoom()) window.location.href = 'lobby.html';
       } catch (e) {
         showToast(e.message);
         setLoading(btn, false);
@@ -597,7 +599,9 @@
         await registerUser(phone, username, pwd);
 
         showToast('注册成功！', 'success');
-        setTimeout(() => { window.location.href = 'lobby.html'; }, 800);
+        setTimeout(async () => {
+          if (!await checkAndRedirectActiveRoom()) window.location.href = 'lobby.html';
+        }, 800);
       } catch (e) {
         showToast(e.message || '注册失败');
         setLoading(btn, false);

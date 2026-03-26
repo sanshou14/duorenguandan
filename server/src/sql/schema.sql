@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS room_players (
   seat      INT          NOT NULL,
   team      VARCHAR(10),
   is_ready  TINYINT(1)   NOT NULL DEFAULT 0,
+  is_exited TINYINT(1)   NOT NULL DEFAULT 0,
   card_count INT         NOT NULL DEFAULT 0,
   joined_at DATETIME     DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_room_user (room_id, user_id),

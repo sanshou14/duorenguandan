@@ -310,6 +310,27 @@ function removeCards(hand, played) {
 // 工具函数
 // ============================================================
 
+async function exitGame(roomId) {
+  return api('/api/game/exit', { method: 'POST', body: { room_id: roomId } });
+}
+
+async function getActiveRoom() {
+  return api('/api/game/active-room');
+}
+
+// 检查并跳转到进行中的对局（用于各页面加载时调用）
+async function checkAndRedirectActiveRoom() {
+  try {
+    const res = await getActiveRoom();
+    if (res.active) {
+      const page = res.player_count === 8 ? '8player.html' : '6player.html';
+      window.location.href = `${page}?room_id=${res.room_id}`;
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
 function getUrlParam(key) {
   return new URLSearchParams(window.location.search).get(key);
 }
