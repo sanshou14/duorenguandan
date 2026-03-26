@@ -9,6 +9,34 @@ const {
 
 router.use(authMiddleware);
 
+// 接风：clearTable 时找最后出牌者的下一个未出完队友
+function getNextSeatAfterFinish(lastSeat, allPlayers, finishOrder, fallbackSeat) {
+  const lastPlayer = allPlayers.find(p => p.seat === lastSeat);
+  if (lastPlayer && finishOrder.includes(lastSeat)) {
+    const n = allPlayers.filter(p => p.seat < 100).length;
+    for (let i = 1; i < n; i++) {
+      const cSeat = (lastSeat + i) % n;
+      const candidate = allPlayers.find(p => p.seat === cSeat);
+      if (candidate && !finishOrder.includes(cSeat) && candidate.team === lastPlayer.team) {
+        return cSeat;
+      }
+    }
+  }
+  return null;
+}
+
+// clearTable 时决定下一个座位（含接风逻辑）
+function resolveNextSeatOnClearTable(gs, allPlayers, finishOrder, currentSeat) {
+  const lastSeat = gs.last_played_by_seat;
+  const teammate = getNextSeatAfterFinish(lastSeat, allPlayers, finishOrder, currentSeat);
+  if (teammate !== null) return teammate;
+  // 最后出牌者未出完，由其继续领牌
+  if (lastSeat !== null && lastSeat !== undefined && !finishOrder.includes(lastSeat)) {
+    return lastSeat;
+  }
+  return getNextSeat(currentSeat, allPlayers.filter(p => p.seat < 100), finishOrder);
+}
+
 // 本地时间格式化（MySQL DATETIME 使用本地时区，避免 UTC 偏差）
 function toMySQLDatetime(date) {
   const pad = n => String(n).padStart(2, '0');
@@ -308,23 +336,7 @@ router.post('/pass', async (req, res) => {
 
     let nextSeat;
     if (clearTable) {
-      const lastSeat = gs.last_played_by_seat;
-      const lastPlayer = players.find(p => p.seat === lastSeat);
-      if (lastPlayer && finishOrder.includes(lastSeat)) {
-        const n = players.filter(p => p.seat < 100).length;
-        let found = null;
-        for (let i = 1; i < n; i++) {
-          const cSeat = (lastSeat + i) % n;
-          const candidate = players.find(p => p.seat === cSeat);
-          if (candidate && !finishOrder.includes(cSeat) && candidate.team === lastPlayer.team) {
-            found = cSeat; break;
-          }
-        }
-        nextSeat = found ?? getNextSeat(gs.current_seat, players.filter(p => p.seat < 100), finishOrder);
-      } else {
-        nextSeat = (lastSeat !== null && lastSeat !== undefined && !finishOrder.includes(lastSeat))
-          ? lastSeat : getNextSeat(gs.current_seat, players.filter(p => p.seat < 100), finishOrder);
-      }
+      nextSeat = resolveNextSeatOnClearTable(gs, players, finishOrder, gs.current_seat);
     } else {
       nextSeat = getNextSeat(gs.current_seat, players.filter(p => p.seat < 100), finishOrder);
     }
@@ -431,7 +443,9 @@ router.post('/ai-move', async (req, res) => {
       const newPassCount = (gs.pass_count || 0) + 1;
       const activePlayers = players.filter(p => !finishOrder.includes(p.seat) && p.seat < 100);
       const clearTable = newPassCount >= activePlayers.length - 1;
-      const nextSeat = getNextSeat(seat, players.filter(p => p.seat < 100), finishOrder);
+      const nextSeat = clearTable
+        ? resolveNextSeatOnClearTable(gs, players, finishOrder, seat)
+        : getNextSeat(seat, players.filter(p => p.seat < 100), finishOrder);
       const timerExpiresDate = new Date(Date.now() + 60000);
       const timerExpires = toMySQLDatetime(timerExpiresDate);
       const timerExpiresISO = timerExpiresDate.toISOString();
@@ -489,14 +503,7 @@ router.post('/force-play', async (req, res) => {
       const clearTable = newPassCount >= activePlayers.length - 1;
       let nextSeat;
       if (clearTable) {
-        const lastSeat = gs.last_played_by_seat;
-        const lastPlayer = players.find(p => p.seat === lastSeat);
-        if (lastPlayer && finishOrder.includes(lastSeat)) {
-          nextSeat = getNextSeat(seat, players.filter(p => p.seat < 100), finishOrder);
-        } else {
-          nextSeat = (lastSeat !== null && lastSeat !== undefined && !finishOrder.includes(lastSeat))
-            ? lastSeat : getNextSeat(seat, players.filter(p => p.seat < 100), finishOrder);
-        }
+        nextSeat = resolveNextSeatOnClearTable(gs, players, finishOrder, seat);
       } else {
         nextSeat = getNextSeat(seat, players.filter(p => p.seat < 100), finishOrder);
       }
