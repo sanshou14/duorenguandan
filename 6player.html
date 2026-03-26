@@ -617,39 +617,43 @@
     .play-card.joker-b .r-val,
     .play-card.joker-b .r-suit { color: #c0392b; }
 
-    /* ── Return tribute cards ── */
-    .return-card {
-      width: 44px;
-      height: 60px;
-      background: linear-gradient(165deg, #fff 0%, #f5f5f5 100%);
-      border-radius: 6px;
-      border: 2px solid rgba(80,120,200,0.3);
-      cursor: pointer;
+    /* ── 还贡弹窗手牌容器 ── */
+    #return-card-options {
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 4px 5px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-      transition: border-color 0.12s, box-shadow 0.12s;
-      font-weight: bold;
-      flex-shrink: 0;
+      flex-direction: row;
+      align-items: flex-end;
+      overflow-x: auto;
+      overflow-y: visible;
+      padding: 4px 8px 20px;
+      min-height: 90px;
+      flex-wrap: nowrap;
+      gap: 0;
     }
-    .return-card.rc-red { color: #d63031; }
-    .return-card.rc-black { color: #1a1a2e; }
-    .return-card .rc-rank { font-size: 14px; line-height: 1.1; }
-    .return-card .rc-suit { font-size: 12px; line-height: 1; }
-    .return-card.invalid {
+
+    /* ── 已上供牌标记（仅弹窗内 JS 添加，正常游戏不触发） ── */
+    .hand-card.tribute-received { position: relative; }
+    .hand-card.tribute-received::after {
+      content: '贡';
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      font-size: 8px;
+      font-weight: bold;
+      background: #f39c12;
+      color: #fff;
+      border-radius: 3px;
+      padding: 0 2px;
+      line-height: 1.5;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ── 还贡弹窗中不可选牌变暗 ── */
+    #return-card-options .hand-card.invalid {
       opacity: 0.28;
       cursor: not-allowed;
       pointer-events: none;
     }
-    .return-card.selected {
-      border-color: #f1c40f;
-      background: linear-gradient(165deg, #fffef0, #fff8cc);
-      box-shadow: 0 0 0 2px rgba(241,196,15,0.55), 0 2px 8px rgba(241,196,15,0.4);
-    }
-    .return-card.rc-joker-b { background: linear-gradient(165deg, #fff9e6, #fff0c0); }
-    .return-card.rc-joker-s { background: linear-gradient(165deg, #f0f0f0, #dcdcdc); }
 
     /* ── Bottom panel (float over table) ── */
     .bottom-panel {
@@ -2106,38 +2110,71 @@
     btn.disabled = true;
     btn.style.opacity = '0.5';
 
-    container.innerHTML = myHand.map((c, i) => {
-      const valid = RETURN_VALID_RANKS.has(c.rank);
-      const invalidCls = valid ? '' : ' invalid';
-      if (c.rank === '大' || c.rank === '小') {
-        const jCls = c.rank === '小' ? 'rc-joker-s' : 'rc-joker-b';
-        const iconStyle = c.rank === '小' ? 'filter:grayscale(1) brightness(0.35)' : '';
-        return `<div class="return-card${invalidCls} ${jCls}" data-idx="${i}" data-rank="${c.rank}" data-suit="${c.suit}" data-color="${c.color}">
-          <span style="font-size:9px;font-weight:900;color:${c.rank==='小'?'#222':'#c0392b'}">${c.rank}王</span>
-          <span style="font-size:18px;line-height:1;${iconStyle}">🤡</span>
-        </div>`;
-      }
-      const colorCls = c.color === 'red' ? 'rc-red' : 'rc-black';
-      return `<div class="return-card${invalidCls} ${colorCls}" data-idx="${i}" data-rank="${c.rank}" data-suit="${c.suit}" data-color="${c.color}">
-        <span class="rc-rank">${c.rank}</span><span class="rc-suit">${c.suit}</span>
-      </div>`;
-    }).join('');
+    // 识别本局已上供给我的牌（用于标记）
+    const tributes = gameState?.tribute_state || [];
+    const receivedCards = tributes
+      .filter(t => t.to_seat === myPlayerData?.seat && t.tribute_card)
+      .map(t => t.tribute_card);
+    const isTributeCard = (c) =>
+      receivedCards.some(r => r.rank === c.rank && r.suit === c.suit);
+
+    // 按 rank 分组（与 renderHand 一致）
+    const groups = {};
+    myHand.forEach(c => {
+      if (!groups[c.rank]) groups[c.rank] = [];
+      groups[c.rank].push(c);
+    });
+
+    container.innerHTML = '';
+
+    RANK_ORDER.forEach(rank => {
+      if (!groups[rank]) return;
+      const groupEl = document.createElement('div');
+      groupEl.className = 'card-group';
+
+      const sorted = [...groups[rank]].sort((a, b) =>
+        (SUIT_ORDER[a.suit] ?? 99) - (SUIT_ORDER[b.suit] ?? 99));
+
+      sorted.forEach(card => {
+        const valid = RETURN_VALID_RANKS.has(card.rank);
+        const el = document.createElement('div');
+        el.className = `hand-card ${card.color}${valid ? '' : ' invalid'}`;
+
+        if (card.rank === '小' || card.rank === '大') {
+          el.classList.add(card.rank === '小' ? 'joker-s' : 'joker-b');
+          el.innerHTML = `<span class="h-rank">${card.rank}</span><span class="h-suit">王</span>`;
+        } else {
+          if (card.rank === currentLevel && card.suit === '♥') el.classList.add('trump-heart');
+          el.innerHTML = `<span class="h-rank">${card.rank}</span><span class="h-suit">${card.suit}</span>`;
+        }
+
+        if (isTributeCard(card)) el.classList.add('tribute-received');
+
+        el.dataset.rank  = card.rank;
+        el.dataset.suit  = card.suit;
+        el.dataset.color = card.color;
+
+        if (valid) {
+          el.addEventListener('click', () => {
+            container.querySelectorAll('.hand-card').forEach(e => e.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedReturn = { rank: card.rank, suit: card.suit, color: card.color };
+            btn.disabled = false;
+            btn.style.opacity = '1';
+          });
+        }
+
+        groupEl.appendChild(el);
+      });
+
+      container.appendChild(groupEl);
+    });
 
     if (myHand.length === 0) {
       container.innerHTML = '<p style="color:#e74c3c; font-size:13px">手牌为空，将自动还贡</p>';
     } else if (!myHand.some(c => RETURN_VALID_RANKS.has(c.rank))) {
       container.innerHTML += '<p style="color:#e74c3c; font-size:12px; width:100%; margin-top:6px">无合法还贡牌，将自动还贡</p>';
     }
-
-    container.querySelectorAll('.return-card:not(.invalid)').forEach(el => {
-      el.addEventListener('click', () => {
-        container.querySelectorAll('.return-card').forEach(e => e.classList.remove('selected'));
-        el.classList.add('selected');
-        selectedReturn = { rank: el.dataset.rank, suit: el.dataset.suit, color: el.dataset.color };
-        btn.disabled = false;
-        btn.style.opacity = '1';
-      });
-    });
 
     btn.onclick = async () => {
       if (!selectedReturn) return;
@@ -2492,7 +2529,7 @@
     </div>
     <div id="return-tribute-section" style="display:none; border-top:1px solid #2a3a5a; padding-top:14px; margin-top:4px;">
       <p style="margin:0 0 10px; font-size:14px; color:#a0b8e0;">请选择还贡牌（点数 ≤ 10）：</p>
-      <div id="return-card-options" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px;"></div>
+      <div id="return-card-options" style="margin-bottom:14px;"></div>
       <button id="btn-return-tribute" disabled
         style="width:100%; padding:10px; background:#3a7bd5; color:#fff; border:none; border-radius:8px;
         cursor:pointer; font-size:15px; opacity:0.5; transition:opacity .2s;">确认还贡</button>
