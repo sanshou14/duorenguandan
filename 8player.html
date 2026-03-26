@@ -889,7 +889,13 @@
       <span class="level-badge" id="blue-level" style="background:#2471a3;">2</span>
     </div>
   </div>
-  <div class="turn-hint">房间号：<span class="room-num" id="room-num-display">----</span></div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="turn-hint">房间号：<span class="room-num" id="room-num-display">----</span></div>
+    <button id="btn-exit-game"
+      style="background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;border-radius:6px;
+             padding:3px 9px;font-size:11px;cursor:pointer;opacity:0.75;white-space:nowrap;"
+      onclick="handleExitGame()">退出</button>
+  </div>
 </div>
 
 <!-- Main area -->
@@ -930,11 +936,6 @@
           </div>
           <button class="btn btn-play" id="btnPlay" disabled style="display:none">出牌</button>
           <button class="btn btn-pass" id="btnPass" disabled style="display:none">不要</button>
-          <button id="btn-exit-game"
-            style="position:absolute;top:6px;right:8px;background:#7f1d1d;color:#fca5a5;
-                   border:1px solid #991b1b;border-radius:6px;padding:4px 10px;
-                   font-size:11px;cursor:pointer;opacity:0.75;"
-            onclick="handleExitGame()">退出</button>
         </div>
       </div>
 

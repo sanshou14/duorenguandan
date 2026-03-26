@@ -804,7 +804,7 @@ router.post('/exit', async (req, res) => {
     broadcastToRoom(io, room_id, 'player_exited', { user_id: req.user.id });
 
     // 3. 若全员已退出 → 强制结束对局
-    const rows = await query(
+    const { rows } = await query(
       'SELECT COUNT(*) AS cnt FROM room_players WHERE room_id = ? AND is_exited = 0 AND seat < 100',
       [room_id]);
     if (rows[0].cnt === 0) {
@@ -826,7 +826,7 @@ router.post('/exit', async (req, res) => {
 // ── 检查当前玩家是否有进行中的对局（用于重连跳转） ─────────────────
 router.get('/active-room', async (req, res) => {
   try {
-    const rows = await query(
+    const { rows } = await query(
       `SELECT r.id AS room_id, r.player_count
        FROM room_players rp
        JOIN rooms r ON r.id = rp.room_id
