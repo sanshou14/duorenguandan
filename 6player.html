@@ -324,7 +324,7 @@
     .seat-compact-body {
       display: flex;
       flex-direction: row;
-      align-items: center;
+      align-items: flex-start;
       gap: 4px;
     }
 
@@ -596,10 +596,14 @@
       justify-content: center;
     }
     .h-joker-text {
-      writing-mode: vertical-rl;
-      font-size: 10px;
-      font-weight: bold;
-      line-height: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-height: 50%;
+      overflow: hidden;
+      font-size: 5.5px;
+      font-weight: 900;
+      line-height: 1.1;
       letter-spacing: 0;
     }
     .hand-card.joker-s .h-joker-text { color: #333; }
@@ -623,10 +627,14 @@
     .play-card.joker-s { background: linear-gradient(165deg, #f0f0f0, #dcdcdc); }
     .play-card.joker-b { background: linear-gradient(165deg, #fff9e6, #fff0c0); }
     .r-joker-text {
-      writing-mode: vertical-rl;
-      font-size: 12px;
-      font-weight: bold;
-      line-height: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-height: 50%;
+      overflow: hidden;
+      font-size: 4.5px;
+      font-weight: 900;
+      line-height: 1.1;
     }
     .play-card.joker-s .r-joker-text { color: #333; }
     .play-card.joker-b .r-joker-text { color: #c0392b; }
@@ -920,6 +928,11 @@
           </div>
           <button class="btn btn-play" id="btnPlay" disabled style="display:none">出牌</button>
           <button class="btn btn-pass" id="btnPass" disabled style="display:none">不要</button>
+          <button id="btn-exit-game"
+            style="position:absolute;top:6px;right:8px;background:#7f1d1d;color:#fca5a5;
+                   border:1px solid #991b1b;border-radius:6px;padding:4px 10px;
+                   font-size:11px;cursor:pointer;opacity:0.75;"
+            onclick="handleExitGame()">退出</button>
         </div>
       </div>
 
@@ -1004,7 +1017,8 @@
   let timerId    = null;
   let realtimeChannel = null;
   let presenceChannel = null;
-  let onlineSeats = new Set(); // 当前在线的座位号（Presence 同步）
+  let onlineSeats  = new Set(); // 当前在线的座位号
+  let exitedSeats  = new Set(); // 已主动退出游戏的座位号
   const FINISH_LABELS = ['头游','二游','三游','四游','五游','末游'];
   const lastActionBySeat = new Map(); // seat → 'play' | 'pass'
 
@@ -1328,6 +1342,24 @@
     } catch(e) { showToast('退出失败'); }
   }
 
+  async function handleExitGame() {
+    if (!confirm('确认退出游戏？退出后将由 AI 代为出牌')) return;
+    try {
+      await exitGame(parseInt(roomId));
+      window.location.href = 'lobby.html';
+    } catch(e) { showToast('退出失败：' + e.message); }
+  }
+
+  // 浏览器关闭/刷新时标记退出
+  window.addEventListener('beforeunload', () => {
+    if (roomId) {
+      navigator.sendBeacon(
+        (typeof API_BASE !== 'undefined' ? API_BASE : '') + '/api/game/exit',
+        new Blob([JSON.stringify({ room_id: parseInt(roomId) })], { type: 'application/json' })
+      );
+    }
+  });
+
   async function handleStartGame() {
     const nonSpecs = players.filter(p => p.seat < 100);
     if (!nonSpecs.every(p => p.is_ready) || nonSpecs.length < PLAYER_COUNT) {
@@ -1457,6 +1489,31 @@
       if (p) { p.card_count = data.card_count; renderAllSeats(); }
     });
 
+    // 掉线 / 上线 / 退出 事件
+    s.on('player_offline', (data) => {
+      const offPlayer = players.find(p => p.user_id === data.user_id);
+      if (offPlayer) onlineSeats.delete(offPlayer.seat);
+      renderAllSeats();
+      // 若轮到掉线玩家出牌且我是房主 → 立即 AI 代打
+      if (gameState?.phase === 'playing' && offPlayer &&
+          gameState.current_seat === offPlayer.seat && myUserId === roomHostId) {
+        setTimeout(() => triggerAIMove(offPlayer.seat), 800);
+      }
+    });
+    s.on('player_online', (data) => {
+      const onPlayer = players.find(p => p.user_id === data.user_id);
+      if (onPlayer) onlineSeats.add(onPlayer.seat);
+      renderAllSeats();
+    });
+    s.on('player_exited', (data) => {
+      const exPlayer = players.find(p => p.user_id === data.user_id);
+      if (exPlayer) {
+        exitedSeats.add(exPlayer.seat);
+        onlineSeats.delete(exPlayer.seat);
+      }
+      renderAllSeats();
+    });
+
     // 所有游戏座位默认视为在线
     players.filter(p => p.seat < 100).forEach(p => onlineSeats.add(p.seat));
   }
@@ -1509,12 +1566,14 @@
         renderHand(myHand);
       } catch(e) { console.warn('手牌加载失败', e); }
       updateButtonState(); // 手牌加载后重新判断按钮显示
-      // 房主负责驱动 AI 出牌
+      // 房主负责驱动 AI 出牌（含掉线/退出玩家）
       if (myUserId === roomHostId) {
         const curSeat = gameState.current_seat;
         const botIds = JSON.parse(localStorage.getItem(`botIds_${roomId}`) || '[]');
         const curPlayer = players.find(p => p.seat === curSeat);
-        if (curPlayer && botIds.includes(curPlayer.user_id)) {
+        const isBot      = curPlayer && botIds.includes(curPlayer.user_id);
+        const isOffline  = onlineSeats.size > 0 && !onlineSeats.has(curSeat);
+        if (isBot || isOffline) {
           setTimeout(() => triggerAIMove(curSeat), 1500);
         }
       }
@@ -1685,8 +1744,8 @@
       : (cnt > 0 ? `${cnt}张`
       : (gameState?.phase === 'playing' && !isReallyDone ? '不够报' : '完'));
     const opacity = isFinished ? 'opacity:0.5;' : '';
-    // 掉线检测：Presence 已就绪（有在线数据）且该座位不在线
-    const isOffline = onlineSeats.size > 0 && gameState?.phase === 'playing' && !onlineSeats.has(player.seat);
+    const isExited  = exitedSeats.has(player.seat);
+    const isOffline = !isExited && onlineSeats.size > 0 && gameState?.phase === 'playing' && !onlineSeats.has(player.seat);
     const finishOrder = gameState?.round_finish_order || [];
     const finishIdx = finishOrder.indexOf(player.seat);
     let labelHTML = '';
@@ -1703,7 +1762,7 @@
       <div class="seat-compact-body">
         <div class="${cls}" style="position:relative">${avatarInner}<div class="team-dot ${teamChar}"></div></div>
         <div class="compact-info">
-          <div class="pname-sm">${displayName}${isOffline ? '<span style="color:#e74c3c;font-size:10px">（已离线）</span>' : ''}</div>
+          <div class="pname-sm">${displayName}${isExited ? '<span style="color:#888;font-size:10px">（已退出）</span>' : isOffline ? '<span style="color:#e74c3c;font-size:10px">（离线中）</span>' : ''}</div>
           <div class="card-count-sm">${cntText}</div>
           ${labelHTML}
         </div>
@@ -1734,7 +1793,8 @@
       : (gameState?.phase === 'playing' && !isReallyDone2 ? '不够报' : '已出完'));
     const myCountAttr = isMe ? 'id="myCount"' : '';
     const opacity = isFinished ? 'opacity:0.5;' : '';
-    const isOffline = !isMe && onlineSeats.size > 0 && gameState?.phase === 'playing' && !onlineSeats.has(player.seat);
+    const isExited2  = !isMe && exitedSeats.has(player.seat);
+    const isOffline  = !isMe && !isExited2 && onlineSeats.size > 0 && gameState?.phase === 'playing' && !onlineSeats.has(player.seat);
     const finishOrder2 = gameState?.round_finish_order || [];
     const finishIdx2 = finishOrder2.indexOf(player.seat);
     let labelHTML2 = '';
@@ -1749,11 +1809,13 @@
     }
 
     return `<div class="seat" ${opacity ? `style="${opacity}"` : ''}>
-      ${labelHTML2}
       <div class="seat-body">
-        <div class="${cls}" style="position:relative">${avatarInner}<div class="team-dot ${teamChar}"></div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+          <div class="${cls}" style="position:relative">${avatarInner}<div class="team-dot ${teamChar}"></div></div>
+          <div style="min-height:16px;display:flex;align-items:center;justify-content:center">${labelHTML2}</div>
+        </div>
         <div class="seat-info">
-          <div class="pname">${displayName}${isOffline ? '<span style="color:#e74c3c;font-size:11px">（已离线）</span>' : ''}</div>
+          <div class="pname">${displayName}${isExited2 ? '<span style="color:#888;font-size:11px">（已退出）</span>' : isOffline ? '<span style="color:#e74c3c;font-size:11px">（离线中）</span>' : ''}</div>
           <div class="card-count" ${myCountAttr}>${cntText}</div>
         </div>
       </div>
@@ -1796,7 +1858,7 @@
         el.dataset.color = card.color;
         if (card.rank === '小' || card.rank === '大') {
           el.classList.add(card.rank === '小' ? 'joker-s' : 'joker-b');
-          el.innerHTML = `<span class="h-joker-text">joker</span>`;
+          el.innerHTML = `<span class="h-joker-text"><span>j</span><span>o</span><span>k</span><span>e</span><span>r</span></span>`;
         } else {
           el.innerHTML = `<span class="h-rank">${card.rank}</span><span class="h-suit">${card.suit}\uFE0E</span>`;
         }
@@ -1898,7 +1960,7 @@
       const div = document.createElement('div');
       if (card.rank === '小' || card.rank === '大') {
         div.className = `play-card ${card.rank === '小' ? 'joker-s' : 'joker-b'}`;
-        div.innerHTML = `<span class="r-joker-text">joker</span>`;
+        div.innerHTML = `<span class="r-joker-text"><span>j</span><span>o</span><span>k</span><span>e</span><span>r</span></span>`;
       } else {
         div.className = `play-card ${card.color}`;
         div.innerHTML = `<span class="r-val">${card.rank}</span><span class="r-suit">${card.suit}\uFE0E</span>`;
@@ -2028,8 +2090,10 @@
     const tributes = gameState?.tribute_state || [];
     const infoList = document.getElementById('tribute-info-list');
     infoList.innerHTML = tributes.map(t => {
-      const fromName = players.find(p => p.seat === t.from_seat)?.profiles?.username || `座位${t.from_seat}`;
-      const toName   = players.find(p => p.seat === t.to_seat)?.profiles?.username || `座位${t.to_seat}`;
+      const fromPlayer = players.find(p => p.seat === t.from_seat);
+      const fromName   = (fromPlayer ? profiles[fromPlayer.user_id]?.username : null) || `座位${t.from_seat}`;
+      const toPlayer   = players.find(p => p.seat === t.to_seat);
+      const toName     = (toPlayer ? profiles[toPlayer.user_id]?.username : null) || `座位${t.to_seat}`;
       const card     = t.tribute_card;
       let cardStr = '';
       if (card) {
@@ -2156,7 +2220,7 @@
 
         if (card.rank === '小' || card.rank === '大') {
           el.classList.add(card.rank === '小' ? 'joker-s' : 'joker-b');
-          el.innerHTML = `<span class="h-joker-text">joker</span>`;
+          el.innerHTML = `<span class="h-joker-text"><span>j</span><span>o</span><span>k</span><span>e</span><span>r</span></span>`;
         } else {
           if (card.rank === currentLevel && card.suit === '♥') el.classList.add('trump-heart');
           el.innerHTML = `<span class="h-rank">${card.rank}</span><span class="h-suit">${card.suit}\uFE0E</span>`;
