@@ -1357,7 +1357,7 @@
     if (roomId) {
       navigator.sendBeacon(
         (typeof API_BASE !== 'undefined' ? API_BASE : '') + '/api/game/exit',
-        new Blob([JSON.stringify({ room_id: parseInt(roomId) })], { type: 'application/json' })
+        new Blob([JSON.stringify({ room_id: parseInt(roomId), auth_token: localStorage.getItem('auth_token') })], { type: 'application/json' })
       );
     }
   });

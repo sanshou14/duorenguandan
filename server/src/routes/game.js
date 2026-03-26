@@ -803,9 +803,13 @@ router.post('/exit', async (req, res) => {
     const io = req.app.get('io');
     broadcastToRoom(io, room_id, 'player_exited', { user_id: req.user.id });
 
-    // 3. 若全员已退出 → 强制结束对局
+    // 3. 若全员真人玩家已退出（排除 bot）→ 强制结束对局
     const { rows } = await query(
-      'SELECT COUNT(*) AS cnt FROM room_players WHERE room_id = ? AND is_exited = 0 AND seat < 100',
+      `SELECT COUNT(*) AS cnt
+       FROM room_players rp
+       JOIN users u ON u.id = rp.user_id
+       WHERE rp.room_id = ? AND rp.is_exited = 0 AND rp.seat < 100
+       AND u.phone NOT LIKE 'bot_%'`,
       [room_id]);
     if (rows[0].cnt === 0) {
       await Promise.all([
