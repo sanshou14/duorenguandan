@@ -591,28 +591,10 @@
     .hand-card.joker-b {
       background: linear-gradient(165deg, #fff9e6, #fff0c0);
     }
-    .h-joker-face {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-      gap: 1px;
-    }
-    .h-joker-rank {
-      font-size: 11px;
-      font-weight: 900;
-      line-height: 1;
-      align-self: flex-start;
-    }
-    .h-joker-icon {
-      font-size: 26px;
-      line-height: 1;
-    }
-    .joker-s .h-joker-rank { color: #222; }
-    .joker-s .h-joker-icon { filter: grayscale(1) brightness(0.35); }
-    .joker-b .h-joker-rank { color: #c0392b; }
+    .hand-card.joker-s .h-rank,
+    .hand-card.joker-s .h-suit { color: #222; }
+    .hand-card.joker-b .h-rank,
+    .hand-card.joker-b .h-suit { color: #c0392b; }
 
     /* ── Trump heart (红心级牌) ── */
     .hand-card.trump-heart .h-rank,
@@ -624,30 +606,16 @@
     /* ── Play-area joker ── */
     .play-card.joker-s,
     .play-card.joker-b {
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-    }
-    .p-joker-face {
-      display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      width: 100%;
-      height: 100%;
-      gap: 1px;
     }
-    .p-joker-rank {
-      font-size: 9px;
-      font-weight: 900;
-      line-height: 1;
-    }
-    .p-joker-icon { font-size: 18px; line-height: 1; }
     .play-card.joker-s { background: linear-gradient(165deg, #f0f0f0, #dcdcdc); }
     .play-card.joker-b { background: linear-gradient(165deg, #fff9e6, #fff0c0); }
-    .play-card.joker-s .p-joker-rank { color: #222; }
-    .play-card.joker-b .p-joker-rank { color: #c0392b; }
-    .play-card.joker-s .p-joker-icon { filter: grayscale(1) brightness(0.35); }
+    .play-card.joker-s .r-val,
+    .play-card.joker-s .r-suit { color: #222; }
+    .play-card.joker-b .r-val,
+    .play-card.joker-b .r-suit { color: #c0392b; }
 
     /* ── Return tribute cards ── */
     .return-card {
@@ -1688,12 +1656,12 @@
       else if (lastAct === 'pass') labelHTML = `<div class="action-tag pass">过牌</div>`;
     }
     return `<div class="seat-compact" ${opacity ? `style="${opacity}"` : ''}>
-      ${labelHTML}
       <div class="seat-compact-body">
         <div class="${cls}" style="position:relative">${avatarInner}<div class="team-dot ${teamChar}"></div></div>
         <div class="compact-info">
           <div class="pname-sm">${displayName}${isOffline ? '<span style="color:#e74c3c;font-size:10px">（已离线）</span>' : ''}</div>
           <div class="card-count-sm">${cntText}</div>
+          ${labelHTML}
         </div>
       </div>
     </div>`;
@@ -1768,7 +1736,7 @@
         el.dataset.rank = card.rank; el.dataset.suit = card.suit; el.dataset.color = card.color;
         if (card.rank === '小' || card.rank === '大') {
           el.classList.add(card.rank === '小' ? 'joker-s' : 'joker-b');
-          el.innerHTML = `<div class="h-joker-face"><span class="h-joker-rank">${card.rank}王</span><span class="h-joker-icon">🤡</span></div>`;
+          el.innerHTML = `<span class="h-rank">${card.rank}</span><span class="h-suit">王</span>`;
         } else {
           el.innerHTML = `<span class="h-rank">${card.rank}</span><span class="h-suit">${card.suit}</span>`;
         }
@@ -1854,7 +1822,7 @@
       const div = document.createElement('div');
       if (card.rank === '小' || card.rank === '大') {
         div.className = `play-card ${card.rank === '小' ? 'joker-s' : 'joker-b'}`;
-        div.innerHTML = `<div class="p-joker-face"><span class="p-joker-rank">${card.rank}王</span><span class="p-joker-icon">🤡</span></div>`;
+        div.innerHTML = `<span class="r-val">${card.rank}</span><span class="r-suit">王</span>`;
       } else {
         div.className = `play-card ${card.color}`;
         div.innerHTML = `<span class="r-val">${card.rank}</span><span class="r-suit">${card.suit}</span>`;
