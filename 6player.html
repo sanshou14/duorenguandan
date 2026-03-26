@@ -410,7 +410,7 @@
       background: linear-gradient(165deg, #fff 0%, #f5f5f5 100%);
       border-radius: 5px;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: flex-start;
       justify-content: flex-start;
       padding: 2px 3px;
@@ -581,20 +581,20 @@
     }
 
     .hand-card .h-rank { font-size: 17px; font-weight: bold; line-height: 1.1; }
-    .hand-card .h-suit { font-size: 14px; line-height: 1; font-variant-emoji: text; }
+    .hand-card .h-suit { font-size: 11px; line-height: 1; font-variant-emoji: text; }
     .hand-card.red   { color: #d63031; }
     .hand-card.black { color: #1a1a2e; }
 
     /* ── Joker cards ── */
     .hand-card.joker-s {
       background: linear-gradient(165deg, #f0f0f0, #dcdcdc);
-      align-items: center;
-      justify-content: center;
+      align-items: flex-start;
+      justify-content: flex-start;
     }
     .hand-card.joker-b {
       background: linear-gradient(165deg, #fff9e6, #fff0c0);
-      align-items: center;
-      justify-content: center;
+      align-items: flex-start;
+      justify-content: flex-start;
     }
     .h-joker-text {
       display: flex;
@@ -622,8 +622,8 @@
     /* ── Play-area joker ── */
     .play-card.joker-s,
     .play-card.joker-b {
-      align-items: center;
-      justify-content: center;
+      align-items: flex-start;
+      justify-content: flex-start;
     }
     .play-card.joker-s { background: linear-gradient(165deg, #f0f0f0, #dcdcdc); }
     .play-card.joker-b { background: linear-gradient(165deg, #fff9e6, #fff0c0); }
@@ -2367,7 +2367,11 @@
     const wildCount = wildIndices.length;
     const baseRanks = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
     const RANKS = [currentLevel, ...baseRanks.filter(r => r !== currentLevel)];
-    const SUITS = ['♠','♦','♣','♥'];
+    const _ph1FlushSuit = nonWilds.length > 0 && nonWilds.every(c => c.suit === nonWilds[0].suit)
+      ? nonWilds[0].suit : null;
+    const SUITS = _ph1FlushSuit
+      ? [_ph1FlushSuit, ...['♠','♦','♣','♥'].filter(s => s !== _ph1FlushSuit)]
+      : ['♠','♦','♣','♥'];
 
     function makeSub(rank, suit) {
       return { rank, suit, color: ['♥','♦'].includes(suit) ? 'red' : 'black' };

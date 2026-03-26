@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   team_b_level         VARCHAR(5)   NOT NULL DEFAULT '2',
   team_a_level_pending TINYINT(1)   NOT NULL DEFAULT 0,
   team_b_level_pending TINYINT(1)   NOT NULL DEFAULT 0,
+  current_level        VARCHAR(5)   NOT NULL DEFAULT '2',
   created_at           DATETIME     DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT chk_player_count CHECK (player_count IN (6, 8)),
   FOREIGN KEY (host_id) REFERENCES users(id)

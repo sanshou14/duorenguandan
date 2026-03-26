@@ -84,6 +84,9 @@ router.post('/deal', async (req, res) => {
       );
     }
 
+    // 持久化当前局级牌，供 AI 路由和刷新恢复使用
+    await query('UPDATE rooms SET current_level = ? WHERE id = ?', [current_level, room_id]);
+
     // 上贡逻辑
     let tributeState = [];
     let isResistance = false;
