@@ -580,21 +580,30 @@
     }
 
     .hand-card .h-rank { font-size: 17px; font-weight: bold; line-height: 1.1; }
-    .hand-card .h-suit { font-size: 14px; line-height: 1; }
+    .hand-card .h-suit { font-size: 14px; line-height: 1; font-variant-emoji: text; }
     .hand-card.red   { color: #d63031; }
     .hand-card.black { color: #1a1a2e; }
 
     /* ── Joker cards ── */
     .hand-card.joker-s {
       background: linear-gradient(165deg, #f0f0f0, #dcdcdc);
+      align-items: center;
+      justify-content: center;
     }
     .hand-card.joker-b {
       background: linear-gradient(165deg, #fff9e6, #fff0c0);
+      align-items: center;
+      justify-content: center;
     }
-    .hand-card.joker-s .h-rank,
-    .hand-card.joker-s .h-suit { color: #222; }
-    .hand-card.joker-b .h-rank,
-    .hand-card.joker-b .h-suit { color: #c0392b; }
+    .h-joker-text {
+      writing-mode: vertical-rl;
+      font-size: 10px;
+      font-weight: bold;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+    .hand-card.joker-s .h-joker-text { color: #333; }
+    .hand-card.joker-b .h-joker-text { color: #c0392b; }
 
     /* ── Trump heart (红心级牌) ── */
     .hand-card.trump-heart .h-rank,
@@ -603,19 +612,24 @@
       text-shadow: 0 0 4px rgba(212,160,23,0.5);
     }
 
+    .play-card .r-suit { font-variant-emoji: text; }
+
     /* ── Play-area joker ── */
     .play-card.joker-s,
     .play-card.joker-b {
-      flex-direction: column;
       align-items: center;
       justify-content: center;
     }
     .play-card.joker-s { background: linear-gradient(165deg, #f0f0f0, #dcdcdc); }
     .play-card.joker-b { background: linear-gradient(165deg, #fff9e6, #fff0c0); }
-    .play-card.joker-s .r-val,
-    .play-card.joker-s .r-suit { color: #222; }
-    .play-card.joker-b .r-val,
-    .play-card.joker-b .r-suit { color: #c0392b; }
+    .r-joker-text {
+      writing-mode: vertical-rl;
+      font-size: 12px;
+      font-weight: bold;
+      line-height: 1;
+    }
+    .play-card.joker-s .r-joker-text { color: #333; }
+    .play-card.joker-b .r-joker-text { color: #c0392b; }
 
     /* ── 还贡弹窗手牌容器 ── */
     #return-card-options {
@@ -1740,9 +1754,9 @@
         el.dataset.rank = card.rank; el.dataset.suit = card.suit; el.dataset.color = card.color;
         if (card.rank === '小' || card.rank === '大') {
           el.classList.add(card.rank === '小' ? 'joker-s' : 'joker-b');
-          el.innerHTML = `<span class="h-rank">${card.rank}</span><span class="h-suit">王</span>`;
+          el.innerHTML = `<span class="h-joker-text">joker</span>`;
         } else {
-          el.innerHTML = `<span class="h-rank">${card.rank}</span><span class="h-suit">${card.suit}</span>`;
+          el.innerHTML = `<span class="h-rank">${card.rank}</span><span class="h-suit">${card.suit}\uFE0E</span>`;
         }
         el.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -1826,10 +1840,10 @@
       const div = document.createElement('div');
       if (card.rank === '小' || card.rank === '大') {
         div.className = `play-card ${card.rank === '小' ? 'joker-s' : 'joker-b'}`;
-        div.innerHTML = `<span class="r-val">${card.rank}</span><span class="r-suit">王</span>`;
+        div.innerHTML = `<span class="r-joker-text">joker</span>`;
       } else {
         div.className = `play-card ${card.color}`;
-        div.innerHTML = `<span class="r-val">${card.rank}</span><span class="r-suit">${card.suit}</span>`;
+        div.innerHTML = `<span class="r-val">${card.rank}</span><span class="r-suit">${card.suit}\uFE0E</span>`;
       }
       playArea.appendChild(div);
     });
@@ -2063,10 +2077,10 @@
 
         if (card.rank === '小' || card.rank === '大') {
           el.classList.add(card.rank === '小' ? 'joker-s' : 'joker-b');
-          el.innerHTML = `<span class="h-rank">${card.rank}</span><span class="h-suit">王</span>`;
+          el.innerHTML = `<span class="h-joker-text">joker</span>`;
         } else {
           if (card.rank === currentLevel && card.suit === '♥') el.classList.add('trump-heart');
-          el.innerHTML = `<span class="h-rank">${card.rank}</span><span class="h-suit">${card.suit}</span>`;
+          el.innerHTML = `<span class="h-rank">${card.rank}</span><span class="h-suit">${card.suit}\uFE0E</span>`;
         }
 
         if (isTributeCard(card)) el.classList.add('tribute-received');
