@@ -1387,7 +1387,7 @@
   let myVotedSurrender = false;
 
   async function handleSurrenderClick() {
-    if (!prevGameState || prevGameState.phase !== 'playing') {
+    if (!gameState || gameState.phase !== 'playing') {
       showToast('当前阶段无法发起投降'); return;
     }
     if (!confirm('确认发起投降？需要队伍全员同意才会生效')) return;
