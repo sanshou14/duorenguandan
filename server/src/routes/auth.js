@@ -1,22 +1,48 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
+const RPCClient = require('@alicloud/pop-core').RPCClient;
 const { query } = require('../config/db');
 const { generateToken, authMiddleware } = require('../middleware/auth');
 
-// POST /api/auth/sms-send — 发送验证码（Mock: 固定123456）
+function createSmsClient() {
+  return new RPCClient({
+    accessKeyId: process.env.SMS_ACCESS_KEY_ID,
+    accessKeySecret: process.env.SMS_ACCESS_KEY_SECRET,
+    endpoint: 'https://dypnsapi.aliyuncs.com',
+    apiVersion: '2017-05-25',
+  });
+}
+
+// POST /api/auth/sms-send — 发送验证码（阿里云短信认证服务）
 router.post('/sms-send', async (req, res) => {
   try {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ error: '缺少手机号' });
 
+    const client = createSmsClient();
+    const result = await client.request('SendVerifyCode', {
+      PhoneNumber: phone,
+      SignName: process.env.SMS_SIGN_NAME,
+      TemplateCode: process.env.SMS_TEMPLATE_CODE,
+      CodeLength: 6,
+      ValidTime: 10,
+    }, { method: 'POST' });
+
+    if (!result.VerifyId) {
+      console.error('SMS send failed:', result);
+      return res.status(500).json({ error: '短信发送失败：' + (result.Message || '未知错误') });
+    }
+
+    // 存储 VerifyId（用于后续验证）
     await query(
       'INSERT INTO sms_codes (phone, code) VALUES (?, ?)',
-      [phone, '123456']
+      [phone, result.VerifyId]
     );
-    res.json({ success: true, message: '验证码已发送（测试: 123456）' });
+    res.json({ success: true, message: '验证码已发送' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('SMS send error:', err);
+    res.status(500).json({ error: '短信发送失败：' + err.message });
   }
 });
 
@@ -26,17 +52,32 @@ router.post('/sms-verify', async (req, res) => {
     const { phone, code } = req.body;
     if (!phone || !code) return res.status(400).json({ error: '缺少参数' });
 
-    // 查询最近一条未使用的有效验证码
+    // 查询最近一条未使用的有效记录（code 列存的是 VerifyId）
     const { rows } = await query(
       `SELECT * FROM sms_codes WHERE phone = ? AND used = 0
        AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1`,
       [phone]
     );
     if (rows.length === 0) {
-      return res.status(400).json({ valid: false, error: '验证码无效或已过期' });
+      return res.status(400).json({ valid: false, error: '验证码已过期，请重新获取' });
     }
-    if (rows[0].code !== code) {
-      return res.status(400).json({ valid: false, error: '验证码错误' });
+
+    const verifyId = rows[0].code;
+
+    // 调用阿里云验证
+    const client = createSmsClient();
+    const result = await client.request('CheckVerifyCode', {
+      VerifyId: verifyId,
+      VerifyCode: code,
+    }, { method: 'POST' });
+
+    // VerifyResult: 0=成功, 1=验证码错误, 2=已过期, 3=尝试次数过多
+    const vr = String(result.VerifyResult);
+    if (vr !== '0') {
+      const errMsg = vr === '1' ? '验证码错误' :
+                     vr === '2' ? '验证码已过期，请重新获取' :
+                     '验证失败，请重试';
+      return res.status(400).json({ valid: false, error: errMsg });
     }
 
     // 标记为已使用
@@ -44,16 +85,15 @@ router.post('/sms-verify', async (req, res) => {
 
     // 查询用户是否存在
     const { rows: users } = await query('SELECT * FROM users WHERE phone = ?', [phone]);
-
     if (users.length === 0) {
       return res.json({ valid: true, is_new_user: true });
     }
 
-    // 已有用户：直接登录
     const user = users[0];
     const token = generateToken(user);
     res.json({ valid: true, is_new_user: false, token, user: { id: user.id, phone: user.phone, username: user.username, avatar_char: user.avatar_char, avatar_url: user.avatar_url } });
   } catch (err) {
+    console.error('SMS verify error:', err);
     res.status(500).json({ error: err.message });
   }
 });
