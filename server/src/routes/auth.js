@@ -1,51 +1,22 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
-const RPCClient = require('@alicloud/pop-core').RPCClient;
 const { query } = require('../config/db');
 const { generateToken, authMiddleware } = require('../middleware/auth');
 
-function createSmsClient() {
-  return new RPCClient({
-    accessKeyId: process.env.SMS_ACCESS_KEY_ID,
-    accessKeySecret: process.env.SMS_ACCESS_KEY_SECRET,
-    endpoint: 'https://dysmsapi.aliyuncs.com',
-    apiVersion: '2017-05-25',
-  });
-}
-
-function generateCode() {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
-
-// POST /api/auth/sms-send — 发送验证码（阿里云标准短信服务）
+// POST /api/auth/sms-send — 发送验证码（Mock: 固定123456）
 router.post('/sms-send', async (req, res) => {
   try {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ error: '缺少手机号' });
 
-    const code = generateCode();
-    const client = createSmsClient();
-    const result = await client.request('SendSms', {
-      PhoneNumbers: phone,
-      SignName: process.env.SMS_SIGN_NAME,
-      TemplateCode: process.env.SMS_TEMPLATE_CODE,
-      TemplateParam: JSON.stringify({ code }),
-    }, { method: 'POST' });
-
-    if (result.Code !== 'OK') {
-      console.error('SMS send failed:', result);
-      return res.status(500).json({ error: '短信发送失败：' + (result.Message || result.Code) });
-    }
-
     await query(
       'INSERT INTO sms_codes (phone, code) VALUES (?, ?)',
-      [phone, code]
+      [phone, '123456']
     );
-    res.json({ success: true, message: '验证码已发送' });
+    res.json({ success: true, message: '验证码已发送（测试: 123456）' });
   } catch (err) {
-    console.error('SMS send error:', err);
-    res.status(500).json({ error: '短信发送失败：' + err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
