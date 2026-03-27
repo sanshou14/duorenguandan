@@ -9,6 +9,9 @@ const {
 
 router.use(authMiddleware);
 
+// 投降状态（内存，key = room_id）
+const surrenderStates = new Map();
+
 // 接风：clearTable 时找最后出牌者的下一个未出完队友
 function getNextSeatAfterFinish(lastSeat, allPlayers, finishOrder, fallbackSeat) {
   const lastPlayer = allPlayers.find(p => p.seat === lastSeat);
@@ -788,6 +791,124 @@ router.post('/end-round', async (req, res) => {
     res.json({ success: true, game_over: gameOver, winner_team: winnerTeam, new_red_level: newRedLevel, new_blue_level: newBlueLevel });
   } catch (err) {
     console.error('end-round error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── 投降功能 ──────────────────────────────────────────────────────
+
+async function checkSurrenderResolved(io, room_id) {
+  const state = surrenderStates.get(room_id);
+  if (!state) return;
+  const allAgree = state.team_seats.every(s => state.votes[s] === 'agree');
+  if (!allAgree) return;
+
+  clearTimeout(state.timer);
+  surrenderStates.delete(room_id);
+
+  const losingTeam = state.team;
+  const winnerTeam = losingTeam === 'red' ? 'blue' : 'red';
+
+  await Promise.all([
+    query("UPDATE rooms SET status = 'finished', winner_team = ? WHERE id = ?", [winnerTeam, room_id]),
+    query("UPDATE game_states SET phase = 'game_end' WHERE room_id = ?", [room_id]),
+  ]);
+
+  broadcastToRoom(io, room_id, 'surrender_resolved', { result: 'surrendered', winner_team: winnerTeam });
+  broadcastToRoom(io, room_id, 'room_changed', { status: 'finished', winner_team: winnerTeam });
+}
+
+router.post('/surrender/initiate', async (req, res) => {
+  try {
+    const io = req.app.get('io');
+    const { room_id } = req.body;
+
+    const { rows: gs } = await query('SELECT phase FROM game_states WHERE room_id = ?', [room_id]);
+    if (!gs.length || gs[0].phase !== 'playing') {
+      return res.status(400).json({ error: '当前阶段不允许投降' });
+    }
+    if (surrenderStates.has(room_id)) {
+      return res.status(400).json({ error: '投降投票进行中' });
+    }
+
+    const { rows: allPlayers } = await query(
+      `SELECT rp.seat, rp.team, rp.user_id, u.phone
+       FROM room_players rp JOIN users u ON u.id = rp.user_id
+       WHERE rp.room_id = ? AND rp.seat < 100 AND rp.is_exited = 0`, [room_id]);
+
+    const myPlayer = allPlayers.find(p => p.user_id === req.user.id);
+    if (!myPlayer) return res.status(403).json({ error: '你不在此对局中' });
+
+    const myTeam = myPlayer.team;
+    const teamMembers = allPlayers.filter(p => p.team === myTeam);
+    const teamSeats = teamMembers.map(p => p.seat);
+    const votes = {};
+    teamSeats.forEach(s => { votes[s] = null; });
+    votes[myPlayer.seat] = 'agree';
+
+    // AI 队友自动同意
+    teamMembers.filter(p => p.phone?.startsWith('bot_')).forEach(p => {
+      votes[p.seat] = 'agree';
+    });
+
+    const expiresAt = new Date(Date.now() + 60000);
+    const timer = setTimeout(() => {
+      surrenderStates.delete(room_id);
+      broadcastToRoom(io, room_id, 'surrender_resolved', { result: 'rejected' });
+    }, 60000);
+
+    surrenderStates.set(room_id, { team: myTeam, initiator_seat: myPlayer.seat, team_seats: teamSeats, votes, timer, expires_at: expiresAt });
+
+    const agreeCount = Object.values(votes).filter(v => v === 'agree').length;
+    broadcastToRoom(io, room_id, 'surrender_initiated', {
+      team: myTeam, initiator_seat: myPlayer.seat,
+      team_size: teamSeats.length, expires_at: expiresAt,
+      agree_count: agreeCount,
+    });
+
+    await checkSurrenderResolved(io, room_id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('surrender/initiate error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/surrender/vote', async (req, res) => {
+  try {
+    const io = req.app.get('io');
+    const { room_id, vote } = req.body;
+    const state = surrenderStates.get(room_id);
+    if (!state) return res.status(400).json({ error: '当前没有进行中的投降' });
+
+    const { rows: allPlayers } = await query(
+      'SELECT seat, user_id, team FROM room_players WHERE room_id = ? AND seat < 100', [room_id]);
+    const myPlayer = allPlayers.find(p => p.user_id === req.user.id);
+    if (!myPlayer || !state.team_seats.includes(myPlayer.seat)) {
+      return res.status(403).json({ error: '你不在投票队伍中' });
+    }
+    if (state.votes[myPlayer.seat] !== null) {
+      return res.status(400).json({ error: '你已经投过票了' });
+    }
+
+    state.votes[myPlayer.seat] = vote;
+
+    if (vote === 'refuse') {
+      clearTimeout(state.timer);
+      surrenderStates.delete(room_id);
+      broadcastToRoom(io, room_id, 'surrender_resolved', { result: 'rejected' });
+      return res.json({ ok: true });
+    }
+
+    const agreeCount = Object.values(state.votes).filter(v => v === 'agree').length;
+    broadcastToRoom(io, room_id, 'surrender_vote_updated', {
+      team: state.team, agree_count: agreeCount, team_size: state.team_seats.length,
+    });
+
+    await checkSurrenderResolved(io, room_id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('surrender/vote error:', err);
     res.status(500).json({ error: err.message });
   }
 });

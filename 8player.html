@@ -892,11 +892,41 @@
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
     <div class="turn-hint">房间号：<span class="room-num" id="room-num-display">----</span></div>
-    <button id="btn-exit-game"
+    <!-- <button id="btn-exit-game"
       style="background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;border-radius:6px;
              padding:3px 9px;font-size:11px;cursor:pointer;opacity:0.75;white-space:nowrap;"
-      onclick="handleExitGame()">退出</button>
+      onclick="handleExitGame()">退出</button> -->
+    <button id="btn-surrender"
+      style="background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;border-radius:6px;
+             padding:3px 9px;font-size:11px;cursor:pointer;opacity:0.75;white-space:nowrap;"
+      onclick="handleSurrenderClick()">投降</button>
   </div>
+</div>
+
+<!-- 投降弹窗（己方） -->
+<div id="surrender-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.75);z-index:500;align-items:center;justify-content:center;">
+  <div style="background:#1a2035;border:1px solid #2a3a5a;border-radius:14px;padding:24px 28px;
+    min-width:300px;max-width:400px;color:#e0e8ff;box-shadow:0 8px 32px rgba(0,0,0,.6);text-align:center;">
+    <div style="font-size:17px;font-weight:700;margin-bottom:12px;color:#f1c40f;">队友发起投降，你服不服</div>
+    <div style="font-size:13px;color:#aac;margin-bottom:16px;">
+      已选择"我服了"：<span id="surrender-agree-count">0</span>/<span id="surrender-team-size">0</span>
+    </div>
+    <div id="surrender-countdown" style="font-size:28px;font-weight:700;color:#e74c3c;margin-bottom:20px;">60</div>
+    <div style="display:flex;gap:12px;justify-content:center;">
+      <button onclick="handleSurrenderVote('agree')"
+        style="background:#27ae60;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:15px;cursor:pointer;font-weight:600;">我服了</button>
+      <button onclick="handleSurrenderVote('refuse')"
+        style="background:#e74c3c;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:15px;cursor:pointer;font-weight:600;">我不服</button>
+    </div>
+  </div>
+</div>
+<!-- 对方投降等待横幅 -->
+<div id="surrender-opponent-banner" style="display:none;position:fixed;top:60px;left:50%;
+  transform:translateX(-50%);background:rgba(26,32,53,0.95);border:1px solid #2a3a5a;
+  border-radius:10px;padding:10px 24px;color:#aac;font-size:13px;z-index:400;
+  box-shadow:0 4px 16px rgba(0,0,0,.4);">
+  对方正发起投降，请耐心等待结果
 </div>
 
 <!-- Main area -->
@@ -1344,6 +1374,62 @@
     } catch(e) { showToast('退出失败：' + e.message); }
   }
 
+  // ---- 投降功能 ----
+  let surrenderCountdownTimer = null;
+  let myVotedSurrender = false;
+
+  async function handleSurrenderClick() {
+    if (!prevGameState || prevGameState.phase !== 'playing') {
+      showToast('当前阶段无法发起投降'); return;
+    }
+    if (!confirm('确认发起投降？需要队伍全员同意才会生效')) return;
+    myVotedSurrender = true;
+    try {
+      await api('/api/game/surrender/initiate', { method: 'POST', body: { room_id: parseInt(roomId) } });
+    } catch(e) {
+      myVotedSurrender = false;
+      showToast('发起投降失败：' + e.message);
+    }
+  }
+
+  async function handleSurrenderVote(vote) {
+    if (myVotedSurrender) return;
+    myVotedSurrender = true;
+    clearSurrenderCountdown();
+    try {
+      await api('/api/game/surrender/vote', { method: 'POST', body: { room_id: parseInt(roomId), vote } });
+    } catch(e) {
+      myVotedSurrender = false;
+      showToast('投票失败：' + e.message);
+    }
+  }
+
+  function startSurrenderCountdown(seconds) {
+    clearSurrenderCountdown();
+    let remaining = seconds;
+    const el = document.getElementById('surrender-countdown');
+    if (el) el.textContent = remaining;
+    surrenderCountdownTimer = setInterval(() => {
+      remaining--;
+      if (el) el.textContent = remaining;
+      if (remaining <= 0) {
+        clearSurrenderCountdown();
+        if (!myVotedSurrender) handleSurrenderVote('refuse');
+      }
+    }, 1000);
+  }
+
+  function clearSurrenderCountdown() {
+    if (surrenderCountdownTimer) { clearInterval(surrenderCountdownTimer); surrenderCountdownTimer = null; }
+  }
+
+  function closeSurrenderUI() {
+    clearSurrenderCountdown();
+    document.getElementById('surrender-modal').style.display = 'none';
+    document.getElementById('surrender-opponent-banner').style.display = 'none';
+    myVotedSurrender = false;
+  }
+
   // 浏览器关闭/刷新时标记退出
   window.addEventListener('beforeunload', () => {
     if (roomId) {
@@ -1504,6 +1590,34 @@
         onlineSeats.delete(exPlayer.seat);
       }
       renderAllSeats();
+    });
+
+    s.on('surrender_initiated', (data) => {
+      const { team, agree_count, team_size, expires_at } = data;
+      const secsLeft = Math.max(1, Math.round((new Date(expires_at) - Date.now()) / 1000));
+      if (myTeam === team) {
+        document.getElementById('surrender-agree-count').textContent = agree_count;
+        document.getElementById('surrender-team-size').textContent = team_size;
+        document.getElementById('surrender-modal').style.display = 'flex';
+        if (!myVotedSurrender) startSurrenderCountdown(secsLeft);
+      } else {
+        document.getElementById('surrender-opponent-banner').style.display = 'block';
+      }
+    });
+
+    s.on('surrender_vote_updated', (data) => {
+      document.getElementById('surrender-agree-count').textContent = data.agree_count;
+      document.getElementById('surrender-team-size').textContent = data.team_size;
+    });
+
+    s.on('surrender_resolved', (data) => {
+      closeSurrenderUI();
+      if (data.result === 'surrendered') {
+        showToast('投降成功！跳转结算...', 'success');
+        setTimeout(() => { window.location.href = `result.html?room_id=${roomId}`; }, 2000);
+      } else {
+        showToast('投降被拒绝，继续对局');
+      }
     });
 
     // 所有游戏座位默认视为在线
