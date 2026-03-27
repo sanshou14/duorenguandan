@@ -1302,16 +1302,16 @@
       btnStart.addEventListener('click', handleStartGame);
       el.appendChild(btnStart);
 
-      // 测试按钮：发全炸弹手牌
-      if (allReady) {
-        const btnTestBomb = document.createElement('button');
-        btnTestBomb.className = 'btn-lstart';
-        btnTestBomb.style.background = 'linear-gradient(135deg,#e74c3c,#c0392b)';
-        btnTestBomb.style.boxShadow = '0 3px 12px rgba(231,76,60,0.45)';
-        btnTestBomb.textContent = '💣 测试发牌(全炸弹)';
-        btnTestBomb.addEventListener('click', handleTestBombDeal);
-        el.appendChild(btnTestBomb);
-      }
+      // // 测试按钮：发全炸弹手牌
+      // if (allReady) {
+      //   const btnTestBomb = document.createElement('button');
+      //   btnTestBomb.className = 'btn-lstart';
+      //   btnTestBomb.style.background = 'linear-gradient(135deg,#e74c3c,#c0392b)';
+      //   btnTestBomb.style.boxShadow = '0 3px 12px rgba(231,76,60,0.45)';
+      //   btnTestBomb.textContent = '💣 测试发牌(全炸弹)';
+      //   btnTestBomb.addEventListener('click', handleTestBombDeal);
+      //   el.appendChild(btnTestBomb);
+      // }
 
       // 全AI对战（观战模式）
       const btnAIBattle = document.createElement('button');
@@ -2560,12 +2560,12 @@
   </div>
 </div>
 <!-- Game Log Panel -->
-<div id="game-log-panel" class="collapsed">
+<!-- <div id="game-log-panel" class="collapsed">
   <div class="log-header" onclick="document.getElementById('game-log-panel').classList.toggle('collapsed');renderGameLog();">
     📋 游戏日志 <span class="log-toggle">▶</span>
   </div>
   <pre id="game-log-content"></pre>
-</div>
+</div> -->
 
 </body>
 </html>
