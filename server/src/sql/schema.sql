@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS game_states (
   last_played_cards   JSON,
   last_played_by_seat INT,
   pass_count          INT          NOT NULL DEFAULT 0,
+  last_human_action_at DATETIME,
   phase               VARCHAR(20)  NOT NULL DEFAULT 'waiting',
   timer_expires_at    DATETIME,
   round_finish_order  JSON,

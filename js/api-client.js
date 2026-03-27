@@ -327,6 +327,10 @@ async function checkAndRedirectActiveRoom() {
       window.location.href = `${page}?room_id=${res.room_id}`;
       return true;
     }
+    if (res.recent_finished) {
+      window.location.href = `result.html?room_id=${res.recent_finished.room_id}`;
+      return true;
+    }
   } catch(e) {}
   return false;
 }

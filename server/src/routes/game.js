@@ -254,7 +254,7 @@ router.post('/deal', async (req, res) => {
 // POST /api/game/play — 出牌
 router.post('/play', async (req, res) => {
   try {
-    const { room_id, cards } = req.body;
+    const { room_id, cards, auto_timeout = false } = req.body;
     const userId = req.user.id;
 
     const { rows: gsRows } = await query('SELECT * FROM game_states WHERE room_id = ?', [room_id]);
@@ -287,8 +287,8 @@ router.post('/play', async (req, res) => {
       query('UPDATE room_players SET card_count = ? WHERE room_id = ? AND user_id = ?',
         [remaining.length, room_id, userId]),
       query(`UPDATE game_states SET current_seat = ?, last_played_cards = ?, last_played_by_seat = ?,
-             pass_count = 0, timer_expires_at = ?, updated_at = ? WHERE room_id = ?`,
-        [nextSeat, JSON.stringify(cards), myPlayer.seat, timerExpires, now, room_id]),
+             pass_count = 0, timer_expires_at = ?, updated_at = ?${auto_timeout ? '' : ', last_human_action_at = ?'} WHERE room_id = ?`,
+        [nextSeat, JSON.stringify(cards), myPlayer.seat, timerExpires, now, ...(auto_timeout ? [] : [now]), room_id]),
       query("INSERT INTO game_actions (room_id, user_id, seat, action_type, cards, round_number) VALUES (?, ?, ?, 'play', ?, ?)",
         [room_id, userId, myPlayer.seat, JSON.stringify(cards), roundNumber]),
     ]);
@@ -353,10 +353,10 @@ router.post('/pass', async (req, res) => {
 
     await Promise.all([
       query(`UPDATE game_states SET current_seat = ?, last_played_cards = ?, last_played_by_seat = ?,
-             pass_count = ?, timer_expires_at = ?, updated_at = ? WHERE room_id = ?`,
+             pass_count = ?, timer_expires_at = ?, updated_at = ?, last_human_action_at = ? WHERE room_id = ?`,
         [nextSeat, clearTable ? null : JSON.stringify(gs.last_played_cards),
          clearTable ? null : gs.last_played_by_seat,
-         clearTable ? 0 : newPassCount, timerExpires, now, room_id]),
+         clearTable ? 0 : newPassCount, timerExpires, now, now, room_id]),
       query("INSERT INTO game_actions (room_id, user_id, seat, action_type, round_number) VALUES (?, ?, ?, 'pass', ?)",
         [room_id, userId, myPlayer.seat, roundNumber]),
     ]);
@@ -841,13 +841,48 @@ router.get('/active-room', async (req, res) => {
        LIMIT 1`,
       [req.user.id]);
 
-    if (!rows.length) return res.json({ active: false });
+    if (rows.length) {
+      const roomId = rows[0].room_id;
 
-    // 重连：重置 is_exited（玩家回来了）
-    await query('UPDATE room_players SET is_exited = 0 WHERE room_id = ? AND user_id = ?',
-      [rows[0].room_id, req.user.id]);
+      // 检查 10 分钟内是否有真实人工操作，无则视为废弃对局
+      const { rows: gsRows } = await query(
+        'SELECT last_human_action_at, updated_at FROM game_states WHERE room_id = ?', [roomId]);
+      if (gsRows.length > 0) {
+        const lastHuman = gsRows[0].last_human_action_at || gsRows[0].updated_at;
+        const minsSince = (Date.now() - new Date(lastHuman).getTime()) / 60000;
+        if (minsSince > 10) {
+          const io = req.app.get('io');
+          await Promise.all([
+            query("UPDATE rooms SET status = 'finished' WHERE id = ?", [roomId]),
+            query("UPDATE game_states SET phase = 'game_end' WHERE room_id = ?", [roomId]),
+          ]);
+          broadcastToRoom(io, roomId, 'game_action', { action_type: 'game_end', reason: 'inactive' });
+          return res.json({ active: false, recent_finished: { room_id: roomId, player_count: rows[0].player_count } });
+        }
+      }
 
-    res.json({ active: true, room_id: rows[0].room_id, player_count: rows[0].player_count });
+      // 正常重连：重置 is_exited（玩家回来了）
+      await query('UPDATE room_players SET is_exited = 0 WHERE room_id = ? AND user_id = ?',
+        [roomId, req.user.id]);
+      return res.json({ active: true, room_id: roomId, player_count: rows[0].player_count });
+    }
+
+    // 检查 1 小时内是否有刚结束的对局（用于展示结算页）
+    const { rows: finRows } = await query(
+      `SELECT r.id AS room_id, r.player_count
+       FROM room_players rp
+       JOIN rooms r ON r.id = rp.room_id
+       JOIN game_states gs ON gs.room_id = r.id
+       WHERE rp.user_id = ? AND r.status = 'finished' AND rp.seat < 100
+         AND gs.updated_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+       ORDER BY gs.updated_at DESC LIMIT 1`,
+      [req.user.id]);
+
+    if (finRows.length) {
+      return res.json({ active: false, recent_finished: { room_id: finRows[0].room_id, player_count: finRows[0].player_count } });
+    }
+
+    res.json({ active: false });
   } catch (err) {
     console.error('active-room error:', err);
     res.status(500).json({ error: err.message });

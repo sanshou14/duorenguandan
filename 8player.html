@@ -1987,7 +1987,7 @@
       renderAllSeats();
       startServerTimer();
       updateButtonState();
-      await playCards(roomId, cards, prevGameState, players);
+      await api('/api/game/play', { method: 'POST', body: { room_id: parseInt(roomId), cards, auto_timeout: true } });
     } catch(e) {
       console.warn('自动出牌失败', e);
       const handData2 = await getMyHand(roomId);
